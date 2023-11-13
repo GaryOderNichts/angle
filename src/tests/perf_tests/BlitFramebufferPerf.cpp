@@ -10,7 +10,7 @@
 
 #include "ANGLEPerfTest.h"
 
-#include "util/gles_loader_autogen.h"
+#include "util/util_gl.h"
 
 namespace
 {

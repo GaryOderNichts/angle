@@ -155,3 +155,10 @@ TestResults.qpa
 
 # Any temporary files will confuse code generation.
 !scripts/code_generation_hashes/*
+
+# Wii U port related things
+wiiu_test/build/
+build-wiiu/
+*.rpx
+*.elf
+/parsetab.py

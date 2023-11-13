@@ -34,6 +34,24 @@ static vector<DWORD> freeTlsIndices;
 
 #endif
 
+#ifdef ANGLE_PLATFORM_WIIU
+#    include <algorithm>
+#    include <set>
+#    include <vector>
+
+#    include <coreinit/thread.h>
+
+// Just claim one of the IDs for angle, no other project should use it
+#    define ANGLE_TLS_THREAD_SPECIFIC_ID OS_THREAD_SPECIFIC_11
+
+typedef std::vector<void *> ThreadLocalData;
+
+static std::set<ThreadLocalData *> allThreadData;
+static uint32_t nextTlsIndex = 0;
+static std::vector<uint32_t> freeTlsIndices;
+
+#endif
+
 namespace angle
 {
 
@@ -57,6 +75,17 @@ TLSIndex CreateTLSIndex(PthreadKeyDestructor destructor)
     index = TlsAlloc();
 #    endif
 
+#elif defined(ANGLE_PLATFORM_WIIU)
+    if (!freeTlsIndices.empty())
+    {
+        uint32_t result = freeTlsIndices.back();
+        freeTlsIndices.pop_back();
+        index = result;
+    }
+    else
+    {
+        index = nextTlsIndex++;
+    }
 #elif defined(ANGLE_PLATFORM_POSIX)
     // Create pthread key
     if ((pthread_key_create(&index, destructor)) != 0)
@@ -94,6 +123,19 @@ bool DestroyTLSIndex(TLSIndex index)
 #    else
     return (TlsFree(index) == TRUE);
 #    endif
+#elif defined(ANGLE_PLATFORM_WIIU)
+    ASSERT(index < nextTlsIndex);
+    ASSERT(std::find(freeTlsIndices.begin(), freeTlsIndices.end(), index) == freeTlsIndices.end());
+
+    freeTlsIndices.push_back(index);
+    for (auto threadData : allThreadData)
+    {
+        if (threadData->size() > index)
+        {
+            threadData->at(index) = nullptr;
+        }
+    }
+    return true;
 #elif defined(ANGLE_PLATFORM_POSIX)
     return (pthread_key_delete(index) == 0);
 #endif
@@ -126,6 +168,23 @@ bool SetTLSValue(TLSIndex index, void *value)
 #    else
     return (TlsSetValue(index, value) == TRUE);
 #    endif
+#elif defined(ANGLE_PLATFORM_WIIU)
+    ThreadLocalData *threadData =
+        (ThreadLocalData *)OSGetThreadSpecific(ANGLE_TLS_THREAD_SPECIFIC_ID);
+    if (!threadData)
+    {
+        threadData = new ThreadLocalData(index + 1, nullptr);
+        allThreadData.insert(threadData);
+
+        OSSetThreadSpecific(ANGLE_TLS_THREAD_SPECIFIC_ID, threadData);
+    }
+    else if (threadData->size() <= index)
+    {
+        threadData->resize(index + 1, nullptr);
+    }
+
+    threadData->at(index) = value;
+    return true;
 #elif defined(ANGLE_PLATFORM_POSIX)
     return (pthread_setspecific(index, value) == 0);
 #endif
@@ -153,6 +212,15 @@ void *GetTLSValue(TLSIndex index)
 #    else
     return TlsGetValue(index);
 #    endif
+#elif defined(ANGLE_PLATFORM_WIIU)
+    ThreadLocalData *threadData =
+        (ThreadLocalData *)OSGetThreadSpecific(ANGLE_TLS_THREAD_SPECIFIC_ID);
+    if (!threadData)
+    {
+        return nullptr;
+    }
+
+    return threadData->at(index);
 #elif defined(ANGLE_PLATFORM_POSIX)
     return pthread_getspecific(index);
 #endif

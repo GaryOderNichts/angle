@@ -434,6 +434,11 @@
                 <enum name="EGL_PLATFORM_ANGLE_TYPE_METAL_ANGLE"/>
             </require>
         </extension>
+        <extension name="EGL_ANGLE_platform_angle_gx2" supported="egl">
+            <require>
+                <enum name="EGL_PLATFORM_ANGLE_TYPE_GX2_ANGLE"/>
+            </require>
+        </extension>
         <extension name="EGL_ANGLE_platform_angle_null" supported="egl">
             <require>
                 <enum name="EGL_PLATFORM_ANGLE_TYPE_NULL_ANGLE"/>
@@ -665,6 +670,9 @@
         <enum value="0x34F1" name="EGL_PLATFORM_ANGLE_VULKAN_DRIVER_UUID_ANGLE"/>
         <enum value="0x34F2" name="EGL_PLATFORM_ANGLE_VULKAN_DRIVER_ID_ANGLE"/>
         <enum value="0x34F8" name="EGL_CONTEXT_HARDENED_ANGLE"/>
+    </enums>
+    <enums namespace="EGL" start="0x3540" end="0x354F" vendor="ANGLE">
+        <enum value="0x3540" name="EGL_PLATFORM_ANGLE_TYPE_GX2_ANGLE"/>
     </enums>
     <enums namespace="EGL" vendor="ANGLE">
         <enum value="0x0001" name="EGL_LOW_POWER_ANGLE"/>

@@ -11,9 +11,9 @@
 #include "test_utils/ANGLETest.h"
 #include "test_utils/gl_raii.h"
 #include "util/EGLWindow.h"
-#include "util/gles_loader_autogen.h"
 #include "util/random_utils.h"
 #include "util/test_utils.h"
+#include "util/util_gl.h"
 
 using namespace angle;
 

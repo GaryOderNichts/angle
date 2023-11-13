@@ -1642,7 +1642,9 @@ class ProgramBinariesAcrossPlatforms : public testing::TestWithParam<PlatformsWi
             EGLWindow::Delete(&eglWindow);
         }
 
+#if defined(ANGLE_USE_UTIL_LOADER)
         LoadUtilGLES(eglGetProcAddress);
+#endif
 
         return eglWindow;
     }
