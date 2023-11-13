@@ -11,7 +11,7 @@
 #include <string>
 #include <vector>
 
-#include "util/gles_loader_autogen.h"
+#include "util/util_gl.h"
 
 typedef std::array<unsigned char, 4> Byte4;
 

@@ -21,6 +21,10 @@
 #    include <pthread.h>
 #endif
 
+#if defined(ANGLE_PLATFORM_WIIU)
+#    include "common/tls.h"
+#endif
+
 namespace angle
 {
 std::string GetExecutableName()
@@ -259,6 +263,27 @@ uint64_t GetCurrentThreadUniqueId()
         uint64_t threadId = ++globalThreadSerial;
         auto result       = pthread_setspecific(tlsIndex, reinterpret_cast<void *>(threadId));
         ASSERT(result == 0);
+        return threadId;
+    }
+    return reinterpret_cast<uint64_t>(tlsValue);
+}
+#elif defined(ANGLE_PLATFORM_WIIU)
+// Wii U doesn't support thread_local, so let's do an apple-like approach
+// Note: We can't use the OSThread ID here, since that might get recycled (TODO check)
+uint64_t GetCurrentThreadUniqueId()
+{
+    static std::atomic<uint32_t> globalThreadSerial;
+    static angle::TLSIndex tlsIndex = TLS_INVALID_INDEX;
+    static std::once_flag flag;
+    std::call_once(flag, [&]() {
+        ASSERT(tlsIndex == TLS_INVALID_INDEX);
+        tlsIndex = angle::CreateTLSIndex(nullptr);
+    });
+    void *tlsValue = angle::GetTLSValue(tlsIndex);
+    if (ANGLE_UNLIKELY(tlsValue == nullptr))
+    {
+        uint32_t threadId = ++globalThreadSerial;
+        angle::SetTLSValue(tlsIndex, reinterpret_cast<void *>(threadId));
         return threadId;
     }
     return reinterpret_cast<uint64_t>(tlsValue);

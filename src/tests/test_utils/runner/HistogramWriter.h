@@ -9,7 +9,8 @@
 #ifndef ANGLE_TESTS_TEST_UTILS_HISTOGRAM_WRITER_H_
 #define ANGLE_TESTS_TEST_UTILS_HISTOGRAM_WRITER_H_
 
-#if !defined(ANGLE_HAS_HISTOGRAMS)
+// wiiu-edit: why is this disabled entirely? there's a stub impl below
+#if 0 && !defined(ANGLE_HAS_HISTOGRAMS)
 #    error "Requires ANGLE_HAS_HISTOGRAMS, see angle_maybe_has_histograms"
 #endif  // !defined(ANGLE_HAS_HISTOGRAMS)
 
