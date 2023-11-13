@@ -7,9 +7,9 @@
 #include "test_utils/ANGLETest.h"
 #include "test_utils/gl_raii.h"
 #include "util/EGLWindow.h"
-#include "util/gles_loader_autogen.h"
 #include "util/random_utils.h"
 #include "util/test_utils.h"
+#include "util/util_gl.h"
 
 using namespace angle;
 
@@ -507,8 +507,8 @@ TEST_P(TransformFeedbackTest, UseAsUBOThenUpdateThenCapture)
 
     const std::array<uint32_t, 12> kInitialData = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
     const std::array<uint32_t, 12> kUpdateData  = {
-         0x12345678u, 0x9ABCDEF0u, 0x13579BDFu, 0x2468ACE0u, 0x23456781u, 0xABCDEF09u,
-         0x3579BDF1u, 0x468ACE02u, 0x34567812u, 0xBCDEF09Au, 0x579BDF13u, 0x68ACE024u,
+        0x12345678u, 0x9ABCDEF0u, 0x13579BDFu, 0x2468ACE0u, 0x23456781u, 0xABCDEF09u,
+        0x3579BDF1u, 0x468ACE02u, 0x34567812u, 0xBCDEF09Au, 0x579BDF13u, 0x68ACE024u,
     };
 
     GLBuffer buffer;
@@ -3749,9 +3749,9 @@ void main()
     constexpr size_t kCapturedVaryingsCount = 3;
     constexpr std::array<size_t, kCapturedVaryingsCount> kCaptureSizes = {8, 9, 4};
     const std::vector<float> kExpected[kCapturedVaryingsCount]         = {
-                {0.27, 0.30, 0.33, 0.36, 0.39, 0.42, 0.45, 0.48},
-                {0.63, 0.66, 0.69, 0.72, 0.75, 0.78, 0.81, 0.84, 0.87},
-                {0.25, 0.5, 0.75, 1.0},
+        {0.27, 0.30, 0.33, 0.36, 0.39, 0.42, 0.45, 0.48},
+        {0.63, 0.66, 0.69, 0.72, 0.75, 0.78, 0.81, 0.84, 0.87},
+        {0.25, 0.5, 0.75, 1.0},
     };
 
     ANGLE_GL_PROGRAM_TRANSFORM_FEEDBACK(program, kVS, kFS, tfVaryings, GL_INTERLEAVED_ATTRIBS);
@@ -3848,9 +3848,9 @@ void main()
     constexpr size_t kCapturedVaryingsCount                            = 3;
     constexpr std::array<size_t, kCapturedVaryingsCount> kCaptureSizes = {1, 2, 1};
     const std::vector<float> kExpected[kCapturedVaryingsCount]         = {
-                {0.25},
-                {0.5, 0.75},
-                {1.0},
+        {0.25},
+        {0.5, 0.75},
+        {1.0},
     };
 
     ANGLE_GL_PROGRAM_TRANSFORM_FEEDBACK(program, kVS, kFS, tfVaryings, GL_SEPARATE_ATTRIBS);

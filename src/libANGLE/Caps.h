@@ -753,6 +753,9 @@ struct ClientExtensions
     // EGL_ANGLE_platform_angle_metal
     bool platformANGLEMetal = false;
 
+    // EGL_ANGLE_platform_angle_gx2
+    bool platformANGLEGX2 = false;
+
     // EGL_ANGLE_platform_angle_device_context_volatile_eagl
     bool platformANGLEDeviceContextVolatileEagl = false;
 

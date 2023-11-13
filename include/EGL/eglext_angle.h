@@ -105,6 +105,11 @@
 #define EGL_PLATFORM_ANGLE_TYPE_METAL_ANGLE 0x3489
 #endif /* EGL_ANGLE_platform_angle_metal  */
 
+#ifndef EGL_ANGLE_platform_angle_gx2
+#define EGL_ANGLE_platform_angle_gx2 1
+#define EGL_PLATFORM_ANGLE_TYPE_GX2_ANGLE 0x3540
+#endif /* EGL_ANGLE_platform_angle_gx2 */
+
 #ifndef EGL_ANGLE_platform_angle_device_type_swiftshader
 #define EGL_ANGLE_platform_angle_device_type_swiftshader
 #define EGL_PLATFORM_ANGLE_DEVICE_TYPE_SWIFTSHADER_ANGLE 0x3487

@@ -1321,7 +1321,7 @@ TEST_P(UniformTestES3, MatrixUniformUpload)
         matrixValues[i] = static_cast<GLfloat>(i);
     }
 
-    using UniformMatrixCxRfv = decltype(glUniformMatrix2fv);
+    using UniformMatrixCxRfv = std::function<decltype(glUniformMatrix2fv)>;  // wiiu-edit
     UniformMatrixCxRfv uniformMatrixCxRfv[kMaxDims + 1][kMaxDims + 1] = {
         {nullptr, nullptr, nullptr, nullptr, nullptr},
         {nullptr, nullptr, nullptr, nullptr, nullptr},

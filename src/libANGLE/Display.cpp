@@ -81,6 +81,10 @@
 #    include "libANGLE/renderer/metal/DisplayMtl_api.h"
 #endif  // defined(ANGLE_ENABLE_METAL)
 
+#if defined(ANGLE_ENABLE_GX2)
+#    include "libANGLE/renderer/gx2/DisplayGX2.h"
+#endif  // defined(ANGLE_ENABLE_GX2)
+
 template <typename T, typename IDType, typename SetT>
 T GetResourceFromHashSet(IDType id, SetT &hashSet)
 {
@@ -255,6 +259,14 @@ EGLAttrib GetDisplayTypeFromEnvironment()
     }
 
 #endif
+
+#if defined(ANGLE_ENABLE_GX2)
+    if (angleDefaultEnv == "gx2")
+    {
+        return EGL_PLATFORM_ANGLE_TYPE_GX2_ANGLE;
+    }
+#endif
+
 #if defined(ANGLE_ENABLE_D3D11)
     return EGL_PLATFORM_ANGLE_TYPE_D3D11_ANGLE;
 #elif defined(ANGLE_ENABLE_D3D9)
@@ -271,6 +283,8 @@ EGLAttrib GetDisplayTypeFromEnvironment()
     return EGL_PLATFORM_ANGLE_TYPE_METAL_ANGLE;
 #elif defined(ANGLE_ENABLE_VULKAN)
     return EGL_PLATFORM_ANGLE_TYPE_VULKAN_ANGLE;
+#elif defined(ANGLE_ENABLE_GX2)
+    return EGL_PLATFORM_ANGLE_TYPE_GX2_ANGLE;
 #elif defined(ANGLE_ENABLE_NULL)
     return EGL_PLATFORM_ANGLE_TYPE_NULL_ANGLE;
 #else
@@ -523,6 +537,13 @@ rx::DisplayImpl *CreateDisplayFromAttribs(EGLAttrib displayType,
             }
 #endif
             // Metal isn't available.
+            break;
+
+        case EGL_PLATFORM_ANGLE_TYPE_GX2_ANGLE:
+#if defined(ANGLE_ENABLE_GX2)
+            impl = new rx::DisplayGX2(state);
+#endif
+            // GX2 isn't available.
             break;
 
         case EGL_PLATFORM_ANGLE_TYPE_NULL_ANGLE:
@@ -2046,6 +2067,10 @@ static ClientExtensions GenerateClientExtensions()
     extensions.platformANGLEDeviceId = true;
 #endif
 
+#if defined(ANGLE_ENABLE_GX2)
+    extensions.platformANGLEGX2 = true;
+#endif
+
 #if defined(ANGLE_USE_X11)
     extensions.x11Visual = true;
 #endif
@@ -2193,6 +2218,11 @@ bool Display::isValidNativeDisplay(EGLNativeDisplayType display)
     {
         return true;
     }
+
+#if defined(ANGLE_PLATFORM_WIIU)
+    // We only support the default display on Wii U
+    return false;
+#endif
 
 #if defined(ANGLE_PLATFORM_WINDOWS) && !defined(ANGLE_ENABLE_WINDOWS_UWP)
     if (display == EGL_SOFTWARE_DISPLAY_ANGLE || display == EGL_D3D11_ELSE_D3D9_DISPLAY_ANGLE ||

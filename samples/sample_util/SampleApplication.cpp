@@ -8,7 +8,6 @@
 
 #include "common/debug.h"
 #include "util/EGLWindow.h"
-#include "util/gles_loader_autogen.h"
 #include "util/random_utils.h"
 #include "util/shader_utils.h"
 #include "util/test_utils.h"

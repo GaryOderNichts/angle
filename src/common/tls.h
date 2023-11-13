@@ -12,7 +12,9 @@
 #include "common/angleutils.h"
 #include "common/platform.h"
 
-#if defined(ANGLE_PLATFORM_POSIX)
+#if defined(ANGLE_PLATFORM_WIIU)
+#    include <wut.h>
+#elif defined(ANGLE_PLATFORM_POSIX)
 #    include <errno.h>
 #    include <pthread.h>
 #    include <semaphore.h>
@@ -39,6 +41,13 @@ namespace angle
 #        endif
 #    endif
 typedef DWORD TLSIndex;
+#    define TLS_INVALID_INDEX (TLS_OUT_OF_INDEXES)
+#elif defined(ANGLE_PLATFORM_WIIU)
+// TLS does not exist for Wii U and is emulated with thread specfics
+#    ifndef TLS_OUT_OF_INDEXES
+#        define TLS_OUT_OF_INDEXES static_cast<uint32_t>(0xFFFFFFFF)
+#    endif
+typedef uint32_t TLSIndex;
 #    define TLS_INVALID_INDEX (TLS_OUT_OF_INDEXES)
 #elif defined(ANGLE_PLATFORM_POSIX)
 typedef pthread_key_t TLSIndex;

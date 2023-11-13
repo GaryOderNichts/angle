@@ -420,6 +420,11 @@
                 <enum name="EGL_PLATFORM_ANGLE_TYPE_METAL_ANGLE"/>
             </require>
         </extension>
+        <extension name="EGL_ANGLE_platform_angle_gx2" supported="egl">
+            <require>
+                <enum name="EGL_PLATFORM_ANGLE_TYPE_GX2_ANGLE"/>
+            </require>
+        </extension>
         <extension name="EGL_ANGLE_platform_angle_null" supported="egl">
             <require>
                 <enum name="EGL_PLATFORM_ANGLE_TYPE_NULL_ANGLE"/>
@@ -594,6 +599,9 @@
         <enum value="0x34DA" name="EGL_SYNC_METAL_SHARED_EVENT_SIGNAL_VALUE_LO_ANGLE"/>
         <enum value="0x34DB" name="EGL_SYNC_METAL_SHARED_EVENT_SIGNAL_VALUE_HI_ANGLE"/>
         <enum value="0x34DC" name="EGL_SYNC_METAL_SHARED_EVENT_SIGNALED_ANGLE" />
+    </enums>
+    <enums namespace="EGL" start="0x3540" end="0x354F" vendor="ANGLE">
+        <enum value="0x3540" name="EGL_PLATFORM_ANGLE_TYPE_GX2_ANGLE"/>
     </enums>
     <enums namespace="EGL" vendor="ANGLE">
         <enum value="0x0001" name="EGL_LOW_POWER_ANGLE"/>

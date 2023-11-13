@@ -24,6 +24,7 @@
 #    include "compiler/translator/TranslatorMetalDirect.h"
 #endif  // ANGLE_ENABLE_METAL
 
+#include "compiler/translator/Compiler.h"
 #include "compiler/translator/util.h"
 
 namespace sh

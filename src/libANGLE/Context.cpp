@@ -58,6 +58,10 @@
 #    include "common/tls.h"
 #endif
 
+#if defined(ANGLE_PLATFORM_WIIU)
+#    include "common/tls.h"
+#endif
+
 namespace gl
 {
 namespace
@@ -443,6 +447,30 @@ void SetCurrentValidContextTLS(Context *context)
     ASSERT(CurrentValidContextIndex != TLS_INVALID_INDEX);
     angle::SetTLSValue(CurrentValidContextIndex, context);
 }
+#elif defined(ANGLE_PLATFORM_WIIU)
+// Wii U doesn't support thread_local, so let's do an apple-like approach
+static angle::TLSIndex GetCurrentValidContextTLSIndex()
+{
+    static angle::TLSIndex CurrentValidContextIndex = TLS_INVALID_INDEX;
+    static std::once_flag flag;
+    std::call_once(flag, [&]() {
+        ASSERT(CurrentValidContextIndex == TLS_INVALID_INDEX);
+        CurrentValidContextIndex = angle::CreateTLSIndex(nullptr);
+    });
+    return CurrentValidContextIndex;
+}
+Context *GetCurrentValidContextTLS()
+{
+    angle::TLSIndex CurrentValidContextIndex = GetCurrentValidContextTLSIndex();
+    ASSERT(CurrentValidContextIndex != TLS_INVALID_INDEX);
+    return static_cast<Context *>(angle::GetTLSValue(CurrentValidContextIndex));
+}
+void SetCurrentValidContextTLS(Context *context)
+{
+    angle::TLSIndex CurrentValidContextIndex = GetCurrentValidContextTLSIndex();
+    ASSERT(CurrentValidContextIndex != TLS_INVALID_INDEX);
+    angle::SetTLSValue(CurrentValidContextIndex, context);
+}
 #else
 thread_local Context *gCurrentValidContext = nullptr;
 #endif
@@ -458,7 +486,7 @@ extern void SetCurrentValidContext(Context *context)
     }
 #endif
 
-#if defined(ANGLE_PLATFORM_APPLE)
+#if defined(ANGLE_PLATFORM_APPLE) || defined(ANGLE_PLATFORM_WIIU)
     SetCurrentValidContextTLS(context);
 #else
     gCurrentValidContext = context;

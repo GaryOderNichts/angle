@@ -26,7 +26,7 @@ namespace egl
 class Debug;
 class Thread;
 
-#if defined(ANGLE_PLATFORM_APPLE)
+#if defined(ANGLE_PLATFORM_APPLE) || defined(ANGLE_PLATFORM_WIIU)
 extern Thread *GetCurrentThreadTLS();
 extern void SetCurrentThreadTLS(Thread *thread);
 #else
@@ -57,7 +57,7 @@ namespace gl
 {
 ANGLE_INLINE Context *GetGlobalContext()
 {
-#if defined(ANGLE_PLATFORM_APPLE)
+#if defined(ANGLE_PLATFORM_APPLE) || defined(ANGLE_PLATFORM_WIIU)
     egl::Thread *currentThread = egl::GetCurrentThreadTLS();
 #else
     egl::Thread *currentThread = egl::gCurrentThread;
@@ -76,7 +76,7 @@ ANGLE_INLINE Context *GetValidGlobalContext()
     }
 #endif
 
-#if defined(ANGLE_PLATFORM_APPLE)
+#if defined(ANGLE_PLATFORM_APPLE) || defined(ANGLE_PLATFORM_WIIU)
     return GetCurrentValidContextTLS();
 #else
     return gCurrentValidContext;

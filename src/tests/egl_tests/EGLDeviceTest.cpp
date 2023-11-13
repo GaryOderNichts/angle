@@ -18,7 +18,7 @@
 #include "util/EGLWindow.h"
 #include "util/OSWindow.h"
 #include "util/com_utils.h"
-#include "util/gles_loader_autogen.h"
+#include "util/util_gl.h"
 
 using namespace angle;
 

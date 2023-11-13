@@ -19,6 +19,11 @@
 #if defined(ANGLE_PLATFORM_APPLE)
 #    include <dispatch/dispatch.h>
 #endif
+
+#if defined(ANGLE_PLATFORM_WIIU)
+#    include "common/tls.h"
+#endif
+
 namespace egl
 {
 namespace
@@ -41,7 +46,7 @@ Thread *AllocateCurrentThread()
         // Global thread intentionally leaked
         ANGLE_SCOPED_DISABLE_LSAN();
         thread = new Thread();
-#if defined(ANGLE_PLATFORM_APPLE)
+#if defined(ANGLE_PLATFORM_APPLE) || defined(ANGLE_PLATFORM_WIIU)
         SetCurrentThreadTLS(thread);
 #else
         gCurrentThread = thread;
@@ -100,6 +105,30 @@ void SetCurrentThreadTLS(Thread *thread)
     ASSERT(CurrentThreadIndex != TLS_INVALID_INDEX);
     angle::SetTLSValue(CurrentThreadIndex, thread);
 }
+#elif defined(ANGLE_PLATFORM_WIIU)
+// Wii U doesn't support thread_local, so let's do an apple-like approach
+static angle::TLSIndex GetCurrentThreadTLSIndex()
+{
+    static angle::TLSIndex CurrentThreadIndex = TLS_INVALID_INDEX;
+    static std::once_flag flag;
+    std::call_once(flag, [&]() {
+        ASSERT(CurrentThreadIndex == TLS_INVALID_INDEX);
+        CurrentThreadIndex = angle::CreateTLSIndex(nullptr);
+    });
+    return CurrentThreadIndex;
+}
+Thread *GetCurrentThreadTLS()
+{
+    angle::TLSIndex CurrentThreadIndex = GetCurrentThreadTLSIndex();
+    ASSERT(CurrentThreadIndex != TLS_INVALID_INDEX);
+    return static_cast<Thread *>(angle::GetTLSValue(CurrentThreadIndex));
+}
+void SetCurrentThreadTLS(Thread *thread)
+{
+    angle::TLSIndex CurrentThreadIndex = GetCurrentThreadTLSIndex();
+    ASSERT(CurrentThreadIndex != TLS_INVALID_INDEX);
+    angle::SetTLSValue(CurrentThreadIndex, thread);
+}
 #else
 thread_local Thread *gCurrentThread = nullptr;
 #endif
@@ -118,7 +147,7 @@ void SetGlobalLastContext(gl::Context *context)
 // It also causes a flaky false positive in TSAN. http://crbug.com/1223970
 ANGLE_NO_SANITIZE_MEMORY ANGLE_NO_SANITIZE_THREAD Thread *GetCurrentThread()
 {
-#if defined(ANGLE_PLATFORM_APPLE)
+#if defined(ANGLE_PLATFORM_APPLE) || defined(ANGLE_PLATFORM_WIIU)
     Thread *current = GetCurrentThreadTLS();
 #else
     Thread *current       = gCurrentThread;
@@ -128,7 +157,7 @@ ANGLE_NO_SANITIZE_MEMORY ANGLE_NO_SANITIZE_THREAD Thread *GetCurrentThread()
 
 void SetContextCurrent(Thread *thread, gl::Context *context)
 {
-#if defined(ANGLE_PLATFORM_APPLE)
+#if defined(ANGLE_PLATFORM_APPLE) || defined(ANGLE_PLATFORM_WIIU)
     Thread *currentThread = GetCurrentThreadTLS();
 #else
     Thread *currentThread = gCurrentThread;

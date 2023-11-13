@@ -129,7 +129,9 @@ class AtomicQueueSerial final
   private:
     static constexpr uint64_t kInvalid = 0;
     std::atomic<uint64_t> mValue       = kInvalid;
+#ifndef __WIIU__  // TODO(garyodernichts) make sure this doesn't cause any issues
     static_assert(decltype(mValue)::is_always_lock_free, "Must always be lock free");
+#endif
 };
 
 // Used as default/initial serial

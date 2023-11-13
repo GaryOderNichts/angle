@@ -23,7 +23,11 @@ namespace
 const char *UnknownEnumToString(unsigned int value)
 {
     constexpr size_t kBufferSize = 64;
+#ifdef __WIIU__
+    static char sBuffer[kBufferSize];
+#else
     static thread_local char sBuffer[kBufferSize];
+#endif
     snprintf(sBuffer, kBufferSize, "0x%04X", value);
     return sBuffer;
 }

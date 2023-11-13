@@ -12,7 +12,7 @@
 
 // Controls if our threading code uses std::async or falls back to single-threaded operations.
 // Note that we can't easily use std::async in UWPs due to UWP threading restrictions.
-#if !defined(ANGLE_STD_ASYNC_WORKERS) && !defined(ANGLE_ENABLE_WINDOWS_UWP)
+#if !defined(ANGLE_STD_ASYNC_WORKERS) && !defined(ANGLE_ENABLE_WINDOWS_UWP) && !defined(__WIIU__)
 #    define ANGLE_STD_ASYNC_WORKERS ANGLE_ENABLED
 #endif  // !defined(ANGLE_STD_ASYNC_WORKERS) && & !defined(ANGLE_ENABLE_WINDOWS_UWP)
 
@@ -287,14 +287,14 @@ std::shared_ptr<WorkerThreadPool> WorkerThreadPool::Create(size_t numThreads,
     const bool multithreaded = numThreads != 1;
     std::shared_ptr<WorkerThreadPool> pool(nullptr);
 
-#if (ANGLE_DELEGATE_WORKERS == ANGLE_ENABLED)
+#if defined(ANGLE_DELEGATE_WORKERS) && (ANGLE_DELEGATE_WORKERS == ANGLE_ENABLED)
     const bool hasPostWorkerTaskImpl = platform->postWorkerTask != nullptr;
     if (hasPostWorkerTaskImpl && multithreaded)
     {
         pool = std::shared_ptr<WorkerThreadPool>(new DelegateWorkerPool(platform));
     }
 #endif
-#if (ANGLE_STD_ASYNC_WORKERS == ANGLE_ENABLED)
+#if defined(ANGLE_STD_ASYNC_WORKERS) && (ANGLE_STD_ASYNC_WORKERS == ANGLE_ENABLED)
     if (!pool && multithreaded)
     {
         pool = std::shared_ptr<WorkerThreadPool>(new AsyncWorkerPool(

@@ -39,6 +39,16 @@ template <typename dataType>
 void readBinary(std::ifstream &stream, dataType &item)
 {
     stream.read(reinterpret_cast<char *>(&item), sizeof(dataType));
+
+    // TODO wiiu-edit
+    if (sizeof(dataType) == 2)
+    {
+        item = __builtin_bswap16(item);
+    }
+    else if (sizeof(dataType) == 4)
+    {
+        item = __builtin_bswap32(item);
+    }
 }
 
 template <typename dataType>

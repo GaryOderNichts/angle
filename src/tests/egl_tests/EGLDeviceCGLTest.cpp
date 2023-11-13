@@ -9,7 +9,7 @@
 #include "test_utils/ANGLETest.h"
 #include "util/EGLWindow.h"
 #include "util/OSWindow.h"
-#include "util/gles_loader_autogen.h"
+#include "util/util_gl.h"
 
 using namespace angle;
 
