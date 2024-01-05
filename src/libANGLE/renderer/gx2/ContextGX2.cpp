@@ -170,8 +170,12 @@ angle::Result ContextGX2::drawElements(const gl::Context *context,
 
     if (elementArrayBufferGX2)
     {
+        // TODO not sure if we should just add the offset to the index buffer
+        // might mess with alignment?
+        size_t offset = reinterpret_cast<size_t>(indices);
+
         GX2DrawIndexedEx(gl_gx2::GetPrimitiveMode(mode), count, gl_gx2::GetIndexType(type),
-                         elementArrayBufferGX2->getDataPtr(), 0, 1);
+                         elementArrayBufferGX2->getDataPtr() + offset, 0, 1);
     }
     else
     {
@@ -858,8 +862,8 @@ angle::Result ContextGX2::setupDraw(const gl::Context *context,
                                     const void *indices)
 {
     applyContextState();
-    mInternalDirtyBits.set(
-        DIRTY_BIT_GX2_SHADERS);  // Urgh, we might need to set shaders for every draw/frame?
+    mInternalDirtyBits.set(DIRTY_BIT_GX2_SHADERS);  // Urgh, how do we handle this instead of
+                                                    // setting shaders for every draw/frame?
     updateState(context);
 
     VertexArrayGX2 *vaoGX2 = GetImplAs<VertexArrayGX2>(mState.getVertexArray());
