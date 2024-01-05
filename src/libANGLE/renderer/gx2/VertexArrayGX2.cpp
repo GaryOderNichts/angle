@@ -150,7 +150,13 @@ angle::Result VertexArrayGX2::syncStateForDraw(const gl::Context *context,
 
     if (mAttribStreamDirty)
     {
-        const size_t attribCount = mState.getEnabledAttributesMask().count();
+        std::vector<GX2AttribStream> attribStreams;
+        for (size_t attribIndex : mState.getEnabledAttributesMask())
+        {
+            attribStreams.push_back(mAttribStreams[attribIndex]);
+        }
+
+        const size_t attribCount = attribStreams.size();
 
         if (mHasFetchShader)
         {
@@ -165,7 +171,7 @@ angle::Result VertexArrayGX2::syncStateForDraw(const gl::Context *context,
         ASSERT(mFetchShader.program != nullptr);
 
         GX2InitFetchShaderEx(&mFetchShader, static_cast<uint8_t *>(mFetchShader.program),
-                             attribCount, mAttribStreams.data(), GX2_FETCH_SHADER_TESSELLATION_NONE,
+                             attribCount, attribStreams.data(), GX2_FETCH_SHADER_TESSELLATION_NONE,
                              GX2_TESSELLATION_MODE_DISCRETE);
         GX2Invalidate(GX2_INVALIDATE_MODE_CPU_SHADER, mFetchShader.program, mFetchShader.size);
 
