@@ -20,7 +20,8 @@ constexpr uint32_t kRingBufferSize = 0x10000u;
 namespace rx
 {
 
-RendererGX2::RendererGX2() : mCurrFrameTimestamp(0), mLastFrameTimestamp(0) {}
+RendererGX2::RendererGX2() : mCurrFrameTimestamp(0), mLastFrameTimestamp(0), mActiveFreeQueue(false)
+{}
 
 RendererGX2::~RendererGX2() {}
 
@@ -173,7 +174,7 @@ void RendererGX2::freeMemory(void *ptr)
 {
     if (ptr)
     {
-        mFreeQueues[activeFreeQueue].push(ptr);
+        mFreeQueues[mActiveFreeQueue].push(ptr);
     }
 }
 
@@ -189,15 +190,15 @@ void RendererGX2::drawDone()
     // mRingBufferOffset = 0;
 
     // Free the inactive freequeue, now that we're sure the GPU is no longer using it
-    while (!mFreeQueues[!activeFreeQueue].empty())
+    while (!mFreeQueues[!mActiveFreeQueue].empty())
     {
-        free(mFreeQueues[!activeFreeQueue].front());
-        mFreeQueues[!activeFreeQueue].pop();
+        free(mFreeQueues[!mActiveFreeQueue].front());
+        mFreeQueues[!mActiveFreeQueue].pop();
     }
 
     // Switch active free queue for the next frame
     // TODO n-buffering
-    activeFreeQueue = !activeFreeQueue;
+    mActiveFreeQueue = !mActiveFreeQueue;
 }
 
 void RendererGX2::notifyFrameEnd()

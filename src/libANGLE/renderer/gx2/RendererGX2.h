@@ -83,7 +83,7 @@ class RendererGX2 : angle::NonCopyable
 
     // Note: Our current approach only works well for double buffering
     // This needs to be reworked if we ever plan to support anything else
-    bool activeFreeQueue;
+    bool mActiveFreeQueue;
     std::queue<void *> mFreeQueues[2];
 
     OSTime mCurrFrameTimestamp;
