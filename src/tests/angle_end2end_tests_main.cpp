@@ -24,8 +24,40 @@ namespace
 constexpr char kTestExpectationsPath[] = "src/tests/angle_end2end_tests_expectations.txt";
 }  // namespace
 
+// TODO remove this from here
+#ifdef __WIIU__
+#    include <sys/iosupport.h>
+
+#    include <coreinit/debug.h>
+
+namespace
+{
+
+ssize_t WiiULogWrite(struct _reent *r, void *fd, const char *ptr, size_t len)
+{
+    OSReport("%*.*s", len, len, ptr);
+    return len;
+}
+
+const devoptab_t WiiULogDevoptab = {
+    .name    = "stdout_osreport",
+    .write_r = WiiULogWrite,
+};
+
+}  // namespace
+
+#endif
+
 int main(int argc, char **argv)
 {
+#ifdef __WIIU__
+    devoptab_list[STD_OUT] = &WiiULogDevoptab;
+    devoptab_list[STD_ERR] = &WiiULogDevoptab;
+
+    // Needed to get the devoptab working for some reason?
+    printf("Hello World from end2end tests\n");
+#endif
+
     angle::TestSuite testSuite(&argc, argv);
     ANGLEProcessTestArgs(&argc, argv);
 
@@ -34,6 +66,7 @@ int main(int argc, char **argv)
         RegisterContextCompatibilityTests();
     }
 
+#ifndef __WIIU__
     constexpr size_t kMaxPath = 512;
     std::array<char, kMaxPath> foundDataPath;
     if (!angle::FindTestDataPath(kTestExpectationsPath, foundDataPath.data(), foundDataPath.size()))
@@ -50,6 +83,7 @@ int main(int argc, char **argv)
     {
         return EXIT_FAILURE;
     }
+#endif
 
     return testSuite.run();
 }

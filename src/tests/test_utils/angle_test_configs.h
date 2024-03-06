@@ -231,6 +231,13 @@ PlatformParameters ES3_Zink();
 PlatformParameters ES31_Zink();
 PlatformParameters ES32_Zink();
 
+PlatformParameters ES1_GX2();
+PlatformParameters ES2_GX2();
+PlatformParameters ES3_GX2();
+PlatformParameters ES31_GX2();
+PlatformParameters ES32_GX2();
+PlatformParameters GL32_CORE_GX2();
+
 const char *GetNativeEGLLibraryNameWithExtension();
 
 inline PlatformParameters WithNoFixture(const PlatformParameters &params)

@@ -525,6 +525,14 @@ bool ValidatePlatformType(const ValidationContext *val,
             }
             break;
 
+        case EGL_PLATFORM_ANGLE_TYPE_GX2_ANGLE:
+            if (!clientExtensions.platformANGLEGX2)
+            {
+                val->setError(EGL_BAD_ATTRIBUTE, "GX2 platform is unsupported.");
+                return false;
+            }
+            break;
+
         default:
             val->setError(EGL_BAD_ATTRIBUTE, "Unknown platform type.");
             return false;

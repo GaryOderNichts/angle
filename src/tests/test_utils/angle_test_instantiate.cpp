@@ -443,6 +443,15 @@ bool HasMesa()
 #endif  // defined(ANGLE_HAS_MESA)
 }
 
+bool IsWiiU()
+{
+#if defined(__WIIU__)
+    return true;
+#else
+    return false;
+#endif  // defined(__WIIU__)
+}
+
 bool IsConfigAllowlisted(const SystemInfo &systemInfo, const PlatformParameters &param)
 {
     VendorID vendorID =
@@ -675,6 +684,19 @@ bool IsConfigAllowlisted(const SystemInfo &systemInfo, const PlatformParameters 
         }
     }
 
+    if (IsWiiU())
+    {
+        // We do not support non-ANGLE bindings on Wii U.
+        if (param.driver != GLESDriverType::AngleEGL)
+            return false;
+
+        // Only GX2 is supported on Wii U
+        if (param.getRenderer() != EGL_PLATFORM_ANGLE_TYPE_GX2_ANGLE)
+            return false;
+
+        return true;
+    }
+
     // Unknown platform.
     return false;
 }
@@ -758,6 +780,13 @@ bool IsPlatformAvailable(const PlatformParameters &param)
 
         case EGL_PLATFORM_ANGLE_TYPE_METAL_ANGLE:
 #if !defined(ANGLE_ENABLE_METAL)
+            return false;
+#else
+            break;
+#endif
+
+        case EGL_PLATFORM_ANGLE_TYPE_GX2_ANGLE:
+#if !defined(ANGLE_ENABLE_GX2)
             return false;
 #else
             break;

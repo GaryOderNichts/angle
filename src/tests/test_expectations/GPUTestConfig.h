@@ -25,6 +25,7 @@ struct GPUTestConfig
         kAPIVulkan,
         kAPISwiftShader,
         kAPIMetal,
+        kAPIGX2,
     };
 
     enum Condition

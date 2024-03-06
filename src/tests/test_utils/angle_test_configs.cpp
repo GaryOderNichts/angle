@@ -160,6 +160,8 @@ const char *GetRendererName(EGLint renderer)
             return "OpenGLES";
         case EGL_PLATFORM_ANGLE_TYPE_VULKAN_ANGLE:
             return "Vulkan";
+        case EGL_PLATFORM_ANGLE_TYPE_GX2_ANGLE:
+            return "GX2";
         default:
             return "Undefined";
     }
@@ -534,6 +536,11 @@ EGLPlatformParameters VULKAN_SWIFTSHADER()
 EGLPlatformParameters METAL()
 {
     return EGLPlatformParameters(EGL_PLATFORM_ANGLE_TYPE_METAL_ANGLE);
+}
+
+EGLPlatformParameters GX2()
+{
+    return EGLPlatformParameters(EGL_PLATFORM_ANGLE_TYPE_GX2_ANGLE);
 }
 
 }  // namespace egl_platform
@@ -943,6 +950,37 @@ PlatformParameters ES31_Zink()
 PlatformParameters ES32_Zink()
 {
     return PlatformParameters(EGL_OPENGL_ES_API, 3, 2, 0, GLESDriverType::ZinkEGL);
+}
+
+PlatformParameters ES1_GX2()
+{
+    return PlatformParameters(EGL_OPENGL_ES_API, 1, 0, 0, egl_platform::GX2());
+}
+
+PlatformParameters ES2_GX2()
+{
+    return PlatformParameters(EGL_OPENGL_ES_API, 2, 0, 0, egl_platform::GX2());
+}
+
+PlatformParameters ES3_GX2()
+{
+    return PlatformParameters(EGL_OPENGL_ES_API, 3, 0, 0, egl_platform::GX2());
+}
+
+PlatformParameters ES31_GX2()
+{
+    return PlatformParameters(EGL_OPENGL_ES_API, 3, 1, 0, egl_platform::GX2());
+}
+
+PlatformParameters ES32_GX2()
+{
+    return PlatformParameters(EGL_OPENGL_ES_API, 3, 2, 0, egl_platform::GX2());
+}
+
+PlatformParameters GL32_CORE_GX2()
+{
+    return PlatformParameters(EGL_OPENGL_API, 3, 2, EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT,
+                              egl_platform::GX2());
 }
 
 }  // namespace angle
