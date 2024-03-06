@@ -25,6 +25,7 @@ struct GPUTestConfig
         kAPISwiftShader,
         kAPIMetal,
         kAPIWgpu,
+        kAPIGX2,
         kAPINative,
     };
 

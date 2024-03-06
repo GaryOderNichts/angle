@@ -238,6 +238,8 @@ GPUTestConfig::API GetTestConfigAPIFromRenderer(angle::GLESDriverType driverType
             return GPUTestConfig::kAPIMetal;
         case EGL_PLATFORM_ANGLE_TYPE_WEBGPU_ANGLE:
             return GPUTestConfig::kAPIWgpu;
+        case EGL_PLATFORM_ANGLE_TYPE_GX2_ANGLE:
+            return GPUTestConfig::kAPIGX2;
         default:
             std::cerr << "Unknown Renderer enum: 0x" << std::hex << renderer << "\n";
             return GPUTestConfig::kAPIUnknown;

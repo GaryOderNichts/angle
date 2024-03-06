@@ -16,8 +16,10 @@ bool GLSL_Init()
 {
     void (*_InitGLSLCompiler)() = nullptr;
 #if defined(__WUT__) || defined(__WIIU__)
+    // TODO FIXME we currently just return true for angle here since shutdown tends to fail
     if (s_glslCompilerModule != nullptr)
-        return false;
+        return true;
+
     OSDynLoad_Error r = OSDynLoad_Acquire("glslcompiler", &s_glslCompilerModule);
     if (r != OS_DYNLOAD_OK)
     {

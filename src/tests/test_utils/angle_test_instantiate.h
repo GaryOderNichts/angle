@@ -56,6 +56,8 @@ bool IsIntelUHD630Mobile();
 
 bool HasMesa();
 
+bool IsWiiU();
+
 bool IsPlatformAvailable(const PlatformParameters &param);
 
 // This functions is used to filter which tests should be registered,
@@ -123,7 +125,7 @@ struct CombinedPrintToStringParamName
 
 #define ANGLE_ALL_TEST_PLATFORMS_ES1                                      \
     ES1_D3D11(), ES1_METAL(), ES1_OPENGL(), ES1_OPENGLES(), ES1_VULKAN(), \
-        ES1_VULKAN_SWIFTSHADER(), ES1_VULKAN().enable(Feature::EnableParallelCompileAndLink)
+        ES1_VULKAN_SWIFTSHADER(), ES1_VULKAN().enable(Feature::EnableParallelCompileAndLink), ES1_GX2()
 
 #define ANGLE_ALL_TEST_PLATFORMS_ES2                                                   \
     ES2_D3D11(), ES2_OPENGL(), ES2_OPENGLES(), ES2_VULKAN(), ES2_VULKAN_SWIFTSHADER(), \
@@ -134,7 +136,8 @@ struct CombinedPrintToStringParamName
         ES2_VULKAN().disable(Feature::EnableCreateContextBackwardsCompatible),         \
         ES2_VULKAN_SWIFTSHADER()                                                       \
             .enable(Feature::EnableParallelCompileAndLink)                             \
-            .disable(Feature::SupportsGraphicsPipelineLibrary)
+            .disable(Feature::SupportsGraphicsPipelineLibrary),                        \
+        ES2_GX2()
 
 #define ANGLE_ALL_TEST_PLATFORMS_ES3                                                   \
     ES3_D3D11(), ES3_OPENGL(), ES3_OPENGLES(), ES3_VULKAN(), ES3_VULKAN_SWIFTSHADER(), \
@@ -147,7 +150,8 @@ struct CombinedPrintToStringParamName
             .enable(Feature::EnableParallelCompileAndLink)                             \
             .disable(Feature::SupportsGraphicsPipelineLibrary)                         \
             .enable(Feature::VaryingsRequireMatchingPrecisionInSpirv)                  \
-            .enable(Feature::SimulateTileMemoryForTesting)
+            .enable(Feature::SimulateTileMemoryForTesting),                            \
+        ES3_GX2()
 
 #define ANGLE_ALL_TEST_PLATFORMS_ES31                                           \
     ES31_OPENGL(), ES31_OPENGLES(), ES31_VULKAN(), ES31_VULKAN_SWIFTSHADER(),   \
@@ -158,12 +162,13 @@ struct CombinedPrintToStringParamName
         ES31_VULKAN_SWIFTSHADER()                                               \
             .enable(Feature::EnableParallelCompileAndLink)                      \
             .disable(Feature::SupportsGraphicsPipelineLibrary)                  \
-            .enable(Feature::VaryingsRequireMatchingPrecisionInSpirv)
+            .enable(Feature::VaryingsRequireMatchingPrecisionInSpirv),          \
+        ES31_GX2()
 
 #define ANGLE_ALL_TEST_PLATFORMS_ES32                                 \
     ES32_VULKAN(), ES32_VULKAN()                                      \
                        .enable(Feature::EnableParallelCompileAndLink) \
-                       .enable(Feature::VaryingsRequireMatchingPrecisionInSpirv)
+                       .enable(Feature::VaryingsRequireMatchingPrecisionInSpirv), ES32_GX2()
 
 #define ANGLE_ALL_TEST_PLATFORMS_NULL ES2_NULL(), ES3_NULL(), ES31_NULL()
 
