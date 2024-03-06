@@ -40,8 +40,40 @@ bool HasArg(int argc, char **argv, const char *arg)
 }
 }  // namespace
 
+// TODO remove this from here
+#ifdef __WIIU__
+#    include <sys/iosupport.h>
+
+#    include <coreinit/debug.h>
+
+namespace
+{
+
+ssize_t WiiULogWrite(struct _reent *r, void *fd, const char *ptr, size_t len)
+{
+    OSReport("%*.*s", len, len, ptr);
+    return len;
+}
+
+const devoptab_t WiiULogDevoptab = {
+    .name    = "stdout_osreport",
+    .write_r = WiiULogWrite,
+};
+
+}  // namespace
+
+#endif
+
 int main(int argc, char **argv)
 {
+#ifdef __WIIU__
+    devoptab_list[STD_OUT] = &WiiULogDevoptab;
+    devoptab_list[STD_ERR] = &WiiULogDevoptab;
+
+    // Needed to get the devoptab working for some reason?
+    printf("Hello World from end2end tests\n");
+#endif
+
     if (!HasArg(argc, argv, "--list-tests") && !HasArg(argc, argv, "--gtest_list_tests") &&
         HasArg(argc, argv, "--use-gl"))
     {
@@ -81,6 +113,7 @@ int main(int argc, char **argv)
     {
         return EXIT_FAILURE;
     }
+#endif
 
     return testSuite.run();
 #else
