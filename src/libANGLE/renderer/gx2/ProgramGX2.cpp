@@ -2,6 +2,7 @@
 
 #include "anglebase/sys_byteorder.h"
 #include "libANGLE/Context.h"
+#include "libANGLE/renderer/gx2/GLSLCompiler.h"
 #include "libANGLE/renderer/gx2/ShaderGX2.h"
 #include "libANGLE/renderer/gx2/VertexArrayGX2.h"
 #include "libANGLE/renderer/gx2/gx2_utils.h"
@@ -9,21 +10,53 @@
 #include <gx2/mem.h>
 #include <malloc.h>
 
+#define ANGLE_PARALLEL_LINK_RETURN(X) return std::make_unique<LinkEventDone>(X);
+#define ANGLE_PARALLEL_LINK_TRY(EXPR) ANGLE_TRY_TEMPLATE(EXPR, ANGLE_PARALLEL_LINK_RETURN)
+
 namespace rx
 {
 
 namespace
 {
 constexpr char kUserDefinedNamePrefix[] = "_u";  // Defined in GLSLANG/ShaderLang.h
-}
 
-ProgramGX2::ProgramGX2(const gl::ProgramState &state) : ProgramImpl(state) {}
+// TODO is there a way to get the current info log size from the cafe shader compiler?
+constexpr uint32_t kMaxInfoLogSize = 4096u;
+
+constexpr GLSL_COMPILER_FLAG kCompilerFlags =
+    GLSL_COMPILER_FLAG_NONE;  // GLSL_COMPILER_FLAG_GENERATE_DISASSEMBLY
+
+// TODO is this always 15?
+constexpr uint32_t kDefaultUniformBlockLocation = 15;
+
+}  // namespace
+
+ProgramGX2::ProgramGX2(const gl::ProgramState &state)
+    : ProgramImpl(state),
+      mVertexShader(),
+      mPixelShader(),
+      mUniformVars(),
+      mDefaultUniformBlocks(),
+      mDefaultUniformBlocksDirty()
+{}
 
 ProgramGX2::~ProgramGX2() {}
 
 void ProgramGX2::destroy(const gl::Context *context)
 {
     ContextGX2 *contextGX2 = GetImplAs<ContextGX2>(context);
+
+    // Destroy shaders
+    if (mVertexShader)
+    {
+        GLSL_FreeVertexShader(mVertexShader);
+        mVertexShader = nullptr;
+    }
+    if (mPixelShader)
+    {
+        GLSL_FreePixelShader(mPixelShader);
+        mPixelShader = nullptr;
+    }
 
     // Destroy default uniform blocks
     for (DefaultUniformBlock &blk : mDefaultUniformBlocks)
@@ -54,17 +87,11 @@ std::unique_ptr<LinkEvent> ProgramGX2::link(const gl::Context *context,
                                             gl::InfoLog &infoLog,
                                             const gl::ProgramMergedVaryings &mergedVaryings)
 {
-    angle::Result status = initDefaultUniformBlocks(context);
-    if (status != angle::Result::Continue)
-    {
-        return std::make_unique<LinkEventDone>(status);
-    }
+    // TODO make compilation asynchronous
 
-    status = initDefaultUniformBlockLayout(context);
-    if (status != angle::Result::Continue)
-    {
-        return std::make_unique<LinkEventDone>(status);
-    }
+    ANGLE_PARALLEL_LINK_TRY(compileShadersImpl(context, infoLog));
+    ANGLE_PARALLEL_LINK_TRY(initDefaultUniformBlocks(context));
+    ANGLE_PARALLEL_LINK_TRY(initDefaultUniformBlockLayout(context));
 
     return std::make_unique<LinkEventDone>(angle::Result::Continue);
 }
@@ -230,6 +257,131 @@ void ProgramGX2::getUniformuiv(const gl::Context *context, GLint location, GLuin
     UNIMPLEMENTED();
 }
 
+void ProgramGX2::setShaders(const gl::Context *context) const
+{
+    // TODO we only use uniform blocks and don't need to set the shader mode
+    //      every time a shader changes
+    GX2SetShaderMode(GX2_SHADER_MODE_UNIFORM_BLOCK);
+
+    if (mVertexShader)
+    {
+        GX2SetVertexShader(mVertexShader);
+    }
+
+    if (mPixelShader)
+    {
+        GX2SetPixelShader(mPixelShader);
+    }
+}
+
+angle::Result ProgramGX2::compileShadersImpl(const gl::Context *context, gl::InfoLog &infoLog)
+{
+    for (gl::ShaderType shaderType : gl::kAllGraphicsShaderTypes)
+    {
+        if (gl::Shader *shader = mState.getAttachedShader(shaderType))
+        {
+            const auto &shaderSource = shader->getTranslatedSource(context);
+
+            mUniformVars[shaderType].clear();
+
+            if (shaderType == gl::ShaderType::Vertex)
+            {
+                std::vector<char> infoLogBuf(kMaxInfoLogSize);
+                mVertexShader = GLSL_CompileVertexShader(shaderSource.c_str(), &infoLogBuf[0],
+                                                         kMaxInfoLogSize, kCompilerFlags);
+                if (!mVertexShader)
+                {
+                    infoLog << "Internal error compiling vertex shader with CafeGLSL.\n";
+                    infoLog << "-------\n";
+                    infoLog << &infoLogBuf[0];
+                    infoLog << "-------\n";
+                    return angle::Result::Stop;
+                }
+
+                for (int32_t i = 0; i < mVertexShader->uniformVarCount; i++)
+                {
+                    mUniformVars[shaderType].push_back(mVertexShader->uniformVars[i]);
+                }
+            }
+            else if (shaderType == gl::ShaderType::Fragment)
+            {
+                std::vector<char> infoLogBuf(kMaxInfoLogSize);
+                mPixelShader = GLSL_CompilePixelShader(shaderSource.c_str(), &infoLogBuf[0],
+                                                       kMaxInfoLogSize, kCompilerFlags);
+                if (!mPixelShader)
+                {
+                    infoLog << "Internal error compiling pixel shader with CafeGLSL.\n";
+                    infoLog << "-------\n";
+                    infoLog << &infoLogBuf[0];
+                    infoLog << "-------\n";
+                    return angle::Result::Stop;
+                }
+
+                for (int32_t i = 0; i < mPixelShader->uniformVarCount; i++)
+                {
+                    mUniformVars[shaderType].push_back(mPixelShader->uniformVars[i]);
+                }
+            }
+            else
+            {
+                infoLog << "Cannot compile this shader type yet\n";
+                return angle::Result::Stop;
+            }
+
+            // TODO
+            // Not sure if this is a compiler bug or a intended feature, but scalar types have a
+            // count of 0 Let's just fix this up here for now
+            for (GX2UniformVar &var : mUniformVars[shaderType])
+            {
+                if (var.count == 0)
+                {
+                    var.count = 1;
+                }
+            }
+        }
+    }
+
+    return angle::Result::Continue;
+}
+
+void ProgramGX2::syncUniformBlocks(const gl::Context *context)
+{
+    DefaultUniformBlock &vblk = mDefaultUniformBlocks[gl::ShaderType::Vertex];
+
+    vblk.buffer.markUsed();
+    vblk.buffer.invalidate(GX2_INVALIDATE_MODE_CPU | GX2_INVALIDATE_MODE_UNIFORM_BLOCK);
+    GX2SetVertexUniformBlock(kDefaultUniformBlockLocation, vblk.buffer.getDataSize(),
+                             vblk.buffer.getDataPtr());
+
+    DefaultUniformBlock &fblk = mDefaultUniformBlocks[gl::ShaderType::Fragment];
+
+    fblk.buffer.markUsed();
+    fblk.buffer.invalidate(GX2_INVALIDATE_MODE_CPU | GX2_INVALIDATE_MODE_UNIFORM_BLOCK);
+    GX2SetPixelUniformBlock(kDefaultUniformBlockLocation, fblk.buffer.getDataSize(),
+                            fblk.buffer.getDataPtr());
+}
+
+size_t ProgramGX2::getDefaultUniformBlockSize(gl::ShaderType shaderType) const
+{
+    // Find uniform var with the largest offset
+    auto maxElement =
+        std::max_element(mUniformVars[shaderType].begin(), mUniformVars[shaderType].end(),
+                         [](const GX2UniformVar &lhs, const GX2UniformVar &rhs) -> bool {
+                             return lhs.offset < rhs.offset;
+                         });
+
+    if (maxElement == mUniformVars[shaderType].end())
+    {
+        // No uniform vars
+        return 0;
+    }
+
+    // Add type size to offset
+    // TODO how does stride work for count? is it rounded up to 4 bytes?
+    return roundUpPow2(
+        maxElement->offset + gx2::GetShaderVarTypeSize(maxElement->type) * maxElement->count, 16u);
+}
+
 angle::Result ProgramGX2::initDefaultUniformBlocks(const gl::Context *context)
 {
     ContextGX2 *contextGX2                    = GetImplAs<ContextGX2>(context);
@@ -237,14 +389,7 @@ angle::Result ProgramGX2::initDefaultUniformBlocks(const gl::Context *context)
 
     for (const gl::ShaderType shaderType : glExecutable.getLinkedShaderStages())
     {
-        gl::Shader *shader = mState.getAttachedShader(shaderType);
-        if (!shader)
-        {
-            continue;
-        }
-
-        ShaderGX2 *shaderGX2 = GetImplAs<ShaderGX2>(shader);
-        size_t blockSize     = shaderGX2->getDefaultUniformBlockSize();
+        size_t blockSize = getDefaultUniformBlockSize(shaderType);
         // if (blockSize == 0)
         // {
         //     // Don't bother allocating a zero-sized buffer
@@ -286,17 +431,8 @@ angle::Result ProgramGX2::initDefaultUniformBlockLayout(const gl::Context *conte
 
                 for (const gl::ShaderType shaderType : glExecutable.getLinkedShaderStages())
                 {
-                    gl::Shader *shader = mState.getAttachedShader(shaderType);
-                    if (!shader)
-                    {
-                        continue;
-                    }
-
-                    ShaderGX2 *shaderGX2                          = GetImplAs<ShaderGX2>(shader);
-                    const std::vector<GX2UniformVar> &uniformVars = shaderGX2->getUniformVars();
-
                     auto foundVar = std::find_if(
-                        uniformVars.begin(), uniformVars.end(),
+                        mUniformVars[shaderType].begin(), mUniformVars[shaderType].end(),
                         [uniformName](const GX2UniformVar &var) {
                             // Compare without prefix
                             return std::strcmp(var.name + sizeof(kUserDefinedNamePrefix) - 1,
@@ -304,7 +440,7 @@ angle::Result ProgramGX2::initDefaultUniformBlockLayout(const gl::Context *conte
                         });
 
                     // Check if var has been found
-                    if (foundVar == uniformVars.end())
+                    if (foundVar == mUniformVars[shaderType].end())
                     {
                         continue;
                     }
