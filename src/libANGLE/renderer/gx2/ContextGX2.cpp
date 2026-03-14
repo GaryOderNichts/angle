@@ -797,17 +797,9 @@ angle::Result ContextGX2::updateState(const gl::Context *context)
                 break;
             case DIRTY_BIT_GX2_SHADERS:
             {
-                ShaderGX2 *vertexShaderGX2 = GetImplAs<ShaderGX2>(
-                    mState.getProgram()->getAttachedShader(gl::ShaderType::Vertex));
-                ShaderGX2 *pixelShaderGX2 = GetImplAs<ShaderGX2>(
-                    mState.getProgram()->getAttachedShader(gl::ShaderType::Fragment));
+                ProgramGX2 *programGX2 = GetImplAs<ProgramGX2>(mState.getProgram());
 
-                // TODO we only use uniform blocks and don't need to set the shader mode
-                //      every time a shader changes
-                GX2SetShaderMode(GX2_SHADER_MODE_UNIFORM_BLOCK);
-
-                vertexShaderGX2->setShader(context);
-                pixelShaderGX2->setShader(context);
+                programGX2->setShaders(context);
                 break;
             }
             case DIRTY_BIT_GX2_POLYGON_CONTROL:
@@ -869,25 +861,7 @@ angle::Result ContextGX2::setupDraw(const gl::Context *context,
     VertexArrayGX2 *vaoGX2 = GetImplAs<VertexArrayGX2>(mState.getVertexArray());
     ProgramGX2 *programGX2 = GetImplAs<ProgramGX2>(mState.getProgram());
 
-    // TODO
-    ShaderGX2 *vertexShaderGX2 =
-        GetImplAs<ShaderGX2>(mState.getProgram()->getAttachedShader(gl::ShaderType::Vertex));
-    ShaderGX2 *fragmentShaderGX2 =
-        GetImplAs<ShaderGX2>(mState.getProgram()->getAttachedShader(gl::ShaderType::Fragment));
-
-    DefaultUniformBlock &vblk = programGX2->getDefaultUniformBlock(gl::ShaderType::Vertex);
-
-    vblk.buffer.markUsed();
-    vblk.buffer.invalidate(GX2_INVALIDATE_MODE_CPU | GX2_INVALIDATE_MODE_UNIFORM_BLOCK);
-    GX2SetVertexUniformBlock(vertexShaderGX2->getDefaultUniformBlockLocation(),
-                             vblk.buffer.getDataSize(), vblk.buffer.getDataPtr());
-
-    DefaultUniformBlock &fblk = programGX2->getDefaultUniformBlock(gl::ShaderType::Fragment);
-
-    fblk.buffer.markUsed();
-    fblk.buffer.invalidate(GX2_INVALIDATE_MODE_CPU | GX2_INVALIDATE_MODE_UNIFORM_BLOCK);
-    GX2SetPixelUniformBlock(fragmentShaderGX2->getDefaultUniformBlockLocation(),
-                            fblk.buffer.getDataSize(), fblk.buffer.getDataPtr());
+    programGX2->syncUniformBlocks(context);
 
     ANGLE_TRY(vaoGX2->syncStateForDraw(context, firstVertex, vertexOrIndexCount, instanceCount,
                                        indexTypeOrInvalid, indices));
