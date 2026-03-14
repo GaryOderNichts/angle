@@ -233,6 +233,17 @@ angle::Result TextureGX2::releaseTexImage(const gl::Context *context)
     return angle::Result::Continue;
 }
 
+angle::Result TextureGX2::getAttachmentRenderTarget(const gl::Context *context,
+                                                    GLenum binding,
+                                                    const gl::ImageIndex &imageIndex,
+                                                    GLsizei samples,
+                                                    FramebufferAttachmentRenderTarget **rtOut)
+{
+    UNIMPLEMENTED();
+    *rtOut = nullptr;
+    return angle::Result::Continue;
+}
+
 angle::Result TextureGX2::syncState(const gl::Context *context,
                                     const gl::Texture::DirtyBits &dirtyBits,
                                     gl::Command source)
