@@ -95,12 +95,15 @@ class ProgramGX2 : public ProgramImpl
     void getUniformiv(const gl::Context *context, GLint location, GLint *params) const override;
     void getUniformuiv(const gl::Context *context, GLint location, GLuint *params) const override;
 
-    DefaultUniformBlock &getDefaultUniformBlock(const gl::ShaderType shaderType)
-    {
-        return mDefaultUniformBlocks[shaderType];
-    }
+    void setShaders(const gl::Context *context) const;
+
+    void syncUniformBlocks(const gl::Context *context);
 
   private:
+    angle::Result compileShadersImpl(const gl::Context *context, gl::InfoLog &infoLog);
+
+    size_t getDefaultUniformBlockSize(gl::ShaderType shaderType) const;
+
     angle::Result initDefaultUniformBlocks(const gl::Context *context);
 
     angle::Result initDefaultUniformBlockLayout(const gl::Context *context);
@@ -113,6 +116,11 @@ class ProgramGX2 : public ProgramImpl
                             GLsizei count,
                             GLboolean transpose,
                             const GLfloat *value);
+
+    GX2VertexShader *mVertexShader;
+    GX2PixelShader *mPixelShader;
+
+    gl::ShaderMap<std::vector<GX2UniformVar>> mUniformVars;
 
     gl::ShaderMap<DefaultUniformBlock> mDefaultUniformBlocks;
     gl::ShaderBitSet mDefaultUniformBlocksDirty;
