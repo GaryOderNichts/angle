@@ -284,9 +284,15 @@ const SurfaceFormat &SurfaceFormat::Get(angle::FormatID formatID)
         {
             UNIMPLEMENTED();
             // UNREACHABLE();
+            // static const SurfaceFormat format(
+            //     angle::FormatID::NONE, GX2_SURFACE_FORMAT_INVALID,
+            //     GX2_SEL_MASK(GX2_SQ_SEL_0, GX2_SQ_SEL_0, GX2_SQ_SEL_0, GX2_SQ_SEL_1), false,
+            //     false);
+
+            // for everything else that's unimplemented just use RGBA
             static const SurfaceFormat format(
-                angle::FormatID::NONE, GX2_SURFACE_FORMAT_INVALID,
-                GX2_SEL_MASK(GX2_SQ_SEL_0, GX2_SQ_SEL_0, GX2_SQ_SEL_0, GX2_SQ_SEL_1), false, false);
+                formatID, angle::FormatID::R8G8B8A8_UNORM, GX2_SURFACE_FORMAT_UNORM_R8_G8_B8_A8,
+                GX2_SEL_MASK(GX2_SQ_SEL_R, GX2_SQ_SEL_G, GX2_SQ_SEL_B, GX2_SQ_SEL_1), false, false);
             return format;
         }
     }

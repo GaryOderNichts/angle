@@ -73,5 +73,9 @@ if (USE_ANGLE_EGL OR ENABLE_WEBGL)
 
         ANGLE_ASSERT_ALWAYS_ON
         ANGLE_TRACE_ENABLED
+        #ANGLE_ENABLE_DEBUG_ANNOTATIONS
+
+        # add this to get traces for every gl call
+        # ANGLE_ENABLE_TRACE_EVENTS
     )
 endif ()

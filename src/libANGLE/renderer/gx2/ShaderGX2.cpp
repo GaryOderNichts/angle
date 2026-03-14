@@ -13,6 +13,8 @@ namespace
 // TODO is there a way to get the current info log size from the cafe shader compiler?
 constexpr uint32_t kMaxInfoLogSize = 4096u;
 
+constexpr GLSL_COMPILER_FLAG kCompilerFlags =
+    GLSL_COMPILER_FLAG_NONE;  // GLSL_COMPILER_FLAG_GENERATE_DISASSEMBLY
 }  // namespace
 
 using PostTranslateFunctor = std::function<bool(std::string *infoLog)>;
@@ -86,9 +88,8 @@ std::shared_ptr<WaitableCompileEvent> ShaderGX2::compile(const gl::Context *cont
         if (shaderType == gl::ShaderType::Vertex)
         {
             std::vector<char> infoLogBuf(kMaxInfoLogSize);
-            mVertexShader =
-                GLSL_CompileVertexShader(objectCode.c_str(), &infoLogBuf[0], kMaxInfoLogSize,
-                                         GLSL_COMPILER_FLAG_GENERATE_DISASSEMBLY);
+            mVertexShader = GLSL_CompileVertexShader(objectCode.c_str(), &infoLogBuf[0],
+                                                     kMaxInfoLogSize, kCompilerFlags);
             if (!mVertexShader)
             {
                 mCompileStatus = false;
@@ -108,9 +109,8 @@ std::shared_ptr<WaitableCompileEvent> ShaderGX2::compile(const gl::Context *cont
         else if (shaderType == gl::ShaderType::Fragment)
         {
             std::vector<char> infoLogBuf(kMaxInfoLogSize);
-            mPixelShader =
-                GLSL_CompilePixelShader(objectCode.c_str(), &infoLogBuf[0], kMaxInfoLogSize,
-                                        GLSL_COMPILER_FLAG_GENERATE_DISASSEMBLY);
+            mPixelShader = GLSL_CompilePixelShader(objectCode.c_str(), &infoLogBuf[0],
+                                                   kMaxInfoLogSize, kCompilerFlags);
             if (!mPixelShader)
             {
                 mCompileStatus = false;
