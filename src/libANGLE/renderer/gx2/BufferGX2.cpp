@@ -170,7 +170,7 @@ angle::Result BufferGX2::setDataImpl(ContextGX2 *context,
                                      size_t updateOffset)
 {
     ASSERT(mBuffer.valid());
-    ASSERT(mBuffer.getDataSize() >= dataOffset + updateSize);
+    ASSERT(mBuffer.getDataSize() >= updateOffset + updateSize);
 
     // Make sure we can write to the buffer
     ANGLE_TRY(ensureBufferUnused(context));

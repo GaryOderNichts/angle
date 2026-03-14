@@ -33,6 +33,18 @@ angle::Result RenderbufferGX2::setStorageEGLImageTarget(const gl::Context *conte
                                                         egl::Image *image)
 {
     UNIMPLEMENTED();
+
+    return angle::Result::Continue;
+}
+
+angle::Result RenderbufferGX2::getAttachmentRenderTarget(const gl::Context *context,
+                                                         GLenum binding,
+                                                         const gl::ImageIndex &imageIndex,
+                                                         GLsizei samples,
+                                                         FramebufferAttachmentRenderTarget **rtOut)
+{
+    UNIMPLEMENTED();
+    *rtOut = nullptr;
     return angle::Result::Continue;
 }
 

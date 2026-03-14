@@ -120,7 +120,7 @@ angle::Result VertexArrayGX2::syncStateForDraw(const gl::Context *context,
     for (size_t attribIndex : mState.getEnabledAttributesMask())
     {
         const gl::VertexAttribute &attrib = mState.getVertexAttribute(attribIndex);
-        const gl::VertexBinding &binding  = mState.getVertexBinding(attrib.bindingIndex);
+        const gl::VertexBinding &binding  = mState.getVertexBinding(attribIndex);
         gl::Buffer *buffer                = binding.getBuffer().get();
         if (!buffer)
         {

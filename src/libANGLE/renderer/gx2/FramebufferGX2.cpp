@@ -140,8 +140,68 @@ angle::Result FramebufferGX2::readPixels(const gl::Context *context,
                                          gl::Buffer *packBuffer,
                                          void *ptrOrOffset)
 {
+    // Clip read area to framebuffer.
+    const gl::Extents &fbSize = getState().getReadPixelsAttachment(format)->getSize();
+    const gl::Rectangle fbRect(0, 0, fbSize.width, fbSize.height);
+
+    gl::Rectangle clippedArea;
+    if (!ClipRectangle(origArea, fbRect, &clippedArea))
+    {
+        // nothing to read
+        return angle::Result::Continue;
+    }
+
+    // Get read attachment
     const gl::FramebufferAttachment *readAttachment = mState.getReadPixelsAttachment(format);
     ASSERT(readAttachment);
+
+    // Get render target
+    RenderTargetGX2 *renderTarget = nullptr;
+    readAttachment->getRenderTarget(context, 0, &renderTarget);
+    ASSERT(renderTarget != nullptr);
+
+    if (format == GL_DEPTH_COMPONENT || format == GL_DEPTH_STENCIL_OES)
+    {
+        // TODO
+        return angle::Result::Continue;
+    }
+
+    if (packBuffer)
+    {
+        // TODO
+        return angle::Result::Continue;
+    }
+
+    ColorRenderTargetGX2 *colorTarget = GetAs<ColorRenderTargetGX2>(renderTarget);
+    ASSERT(colorTarget != nullptr);
+
+    const gl::InternalFormat &sizedFormatInfo = gl::GetInternalFormatInfo(format, type);
+
+    GLuint outputPitch;
+    sizedFormatInfo.computeRowPitch(type, clippedArea.width, pack.alignment, pack.rowLength,
+                                    &outputPitch);
+
+    GX2ColorBuffer *cb = colorTarget->getColorBuffer();
+
+    gl::Rectangle area;
+    area.width  = cb->surface.pitch;
+    area.height = cb->surface.height;
+
+    // TODO the framebuffer might be swizzled, use staging texture
+    const int pitch = cb->surface.pitch * 4;  // TODO
+
+    // TODO
+    PackPixelsParams params(area, GetFormatFromFormatType(format, type), outputPitch,
+                            pack.reverseRowOrder, packBuffer, 0);
+    PackPixels(params,
+               angle::Format::Get(angle::Format::InternalFormatToID(
+                   readAttachment->getFormat().info->sizedInternalFormat)),
+               pitch, static_cast<uint8_t *>(cb->surface.image),
+               static_cast<uint8_t *>(ptrOrOffset));
+
+    // TODO remove
+    uint8_t pixel[4] = {64, 128, 128, 128};
+    memcpy(ptrOrOffset, pixel, sizeof(pixel));
 
     return angle::Result::Continue;
 }

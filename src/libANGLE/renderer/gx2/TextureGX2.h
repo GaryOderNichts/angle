@@ -142,6 +142,12 @@ class TextureGX2 : public TextureImpl
     angle::Result bindTexImage(const gl::Context *context, egl::Surface *surface) override;
     angle::Result releaseTexImage(const gl::Context *context) override;
 
+    angle::Result getAttachmentRenderTarget(const gl::Context *context,
+                                            GLenum binding,
+                                            const gl::ImageIndex &imageIndex,
+                                            GLsizei samples,
+                                            FramebufferAttachmentRenderTarget **rtOut) override;
+
     angle::Result syncState(const gl::Context *context,
                             const gl::Texture::DirtyBits &dirtyBits,
                             gl::Command source) override;
