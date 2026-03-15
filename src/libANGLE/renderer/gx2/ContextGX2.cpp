@@ -240,8 +240,7 @@ angle::Result ContextGX2::drawRangeElements(const gl::Context *context,
                                             gl::DrawElementsType type,
                                             const void *indices)
 {
-    UNIMPLEMENTED();
-    return angle::Result::Continue;
+    return drawElements(context, mode, count, type, indices);
 }
 
 angle::Result ContextGX2::drawRangeElementsBaseVertex(const gl::Context *context,
