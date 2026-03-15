@@ -14,7 +14,7 @@ namespace rx
 
 class RendererGX2;
 
-class ContextGX2 : public ContextImpl
+class ContextGX2 : public ContextImpl, public MultisampleTextureInitializer
 {
   public:
     ContextGX2(const gl::State &state, gl::ErrorSet *errorSet, RendererGX2 *renderer);
@@ -250,6 +250,10 @@ class ContextGX2 : public ContextImpl
 
     angle::ImageLoadContext getImageLoadContext() const;
 
+    // Implementation of MultisampleTextureInitializer
+    angle::Result initializeMultisampleTextureToBlack(const gl::Context *context,
+                                                      gl::Texture *glTexture) override;
+
     void applyContextState();
 
     RendererGX2 *getRenderer() const { return mRenderer; }
@@ -319,6 +323,8 @@ class ContextGX2 : public ContextImpl
     GX2BlendCombineMode mAlphaCombine;
 
     gl::ColorF mBlendColor;
+
+    IncompleteTextureSet mIncompleteTextures;
 
     // Technically it's not necessary for each ContextImpl to have its own
     // GX2ContextState since all dirty bits are going to be set on context switch.
