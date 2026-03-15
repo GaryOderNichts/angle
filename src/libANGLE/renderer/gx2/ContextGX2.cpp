@@ -28,7 +28,39 @@ namespace rx
 {
 
 ContextGX2::ContextGX2(const gl::State &state, gl::ErrorSet *errorSet, RendererGX2 *renderer)
-    : ContextImpl(state, errorSet), mRenderer(renderer)
+    : ContextImpl(state, errorSet),
+      MultisampleTextureInitializer(),
+      mCaps(),
+      mTextureCaps(),
+      mExtensions(),
+      mLimitations(),
+      mPLSOptions(),
+      mRenderer(renderer),
+      mInternalDirtyBits(),
+      mViewportRect(),
+      mNearZ(),
+      mFarZ(),
+      mScissorRect(),
+      mCullFront(),
+      mCullBack(),
+      mFrontFace(),
+      mPolygonOffsetEnable(),
+      mPolygonOffset(),
+      mPolygonScale(),
+      mPolygonClamp(),
+      mDepthTest(),
+      mDepthWrite(),
+      mDepthCompare(),
+      mBlendEnabled(),
+      mColorSrcBlend(),
+      mColorDstBlend(),
+      mColorCombine(),
+      mAlphaSrcBlend(),
+      mAlphaDstBlend(),
+      mAlphaCombine(),
+      mBlendColor(),
+      mIncompleteTextures(),
+      mContextState()
 {
     // TODO these are just copied from the null backend and should be checked and adjusted
     mExtensions                               = gl::Extensions();
@@ -533,7 +565,20 @@ angle::Result ContextGX2::syncState(const gl::Context *context,
 
                     for (size_t textureUnit : activeTextures)
                     {
-                        gl::Texture *texture   = textures[textureUnit];
+                        gl::Texture *texture = textures[textureUnit];
+
+                        // nullptr means incomplete texture
+                        if (texture == nullptr)
+                        {
+                            // TODO this depends on setStorage / setSubImage which is currently not
+                            // implemented
+                            break;
+                            // ANGLE_TRY(mIncompleteTextures.getIncompleteTexture(
+                            //     context, textureTypes[textureUnit],
+                            //     executable->getSamplerFormatForTextureUnitIndex(textureUnit),
+                            //     this, &texture));
+                        }
+
                         TextureGX2 *textureGX2 = GetImplAs<TextureGX2>(texture);
 
                         GX2SetPixelTexture(textureGX2->getTexture(), textureUnit);
@@ -766,6 +811,16 @@ void ContextGX2::handleError(GLenum errorCode,
 angle::ImageLoadContext ContextGX2::getImageLoadContext() const
 {
     return getRenderer()->getDisplay()->getImageLoadContext();
+}
+
+angle::Result ContextGX2::initializeMultisampleTextureToBlack(const gl::Context *context,
+                                                              gl::Texture *glTexture)
+{
+    ASSERT(glTexture->getType() == gl::TextureType::_2DMultisample);
+    TextureGX2 *textureGX2 = GetImplAs<TextureGX2>(glTexture);
+
+    // TODO
+    UNIMPLEMENTED();
 }
 
 void ContextGX2::applyContextState()
