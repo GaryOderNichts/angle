@@ -60,6 +60,10 @@
 #    include "common/tls.h"
 #endif
 
+#if defined(ANGLE_PLATFORM_WIIU)
+#    include "common/tls.h"
+#endif
+
 #if defined(ANGLE_ENABLE_D3D11)
 #    include "libANGLE/renderer/d3d/DisplayD3D.h"
 #endif
@@ -166,6 +170,30 @@ static angle::TLSIndex GetDisplayTLSIndex()
     static angle::TLSIndex DisplayIndex = TLS_INVALID_INDEX;
     static dispatch_once_t once;
     dispatch_once(&once, ^{
+      ASSERT(DisplayIndex == TLS_INVALID_INDEX);
+      DisplayIndex = angle::CreateTLSIndex(nullptr);
+    });
+    return DisplayIndex;
+}
+TLSData *GetDisplayTLS()
+{
+    angle::TLSIndex DisplayIndex = GetDisplayTLSIndex();
+    ASSERT(DisplayIndex != TLS_INVALID_INDEX);
+    return static_cast<TLSData *>(angle::GetTLSValue(DisplayIndex));
+}
+void SetDisplayTLS(TLSData *tlsData)
+{
+    angle::TLSIndex DisplayIndex = GetDisplayTLSIndex();
+    ASSERT(DisplayIndex != TLS_INVALID_INDEX);
+    angle::SetTLSValue(DisplayIndex, tlsData);
+}
+#elif defined(ANGLE_PLATFORM_WIIU)
+// Wii U doesn't support thread_local, so let's do an apple-like approach
+static angle::TLSIndex GetDisplayTLSIndex()
+{
+    static angle::TLSIndex DisplayIndex = TLS_INVALID_INDEX;
+    static std::once_flag once;
+    std::call_once(once, [&]() {
       ASSERT(DisplayIndex == TLS_INVALID_INDEX);
       DisplayIndex = angle::CreateTLSIndex(nullptr);
     });
@@ -2922,7 +2950,7 @@ void Display::InitTLS()
 {
     TLSData *tlsData = new TLSData;
 
-#if defined(ANGLE_PLATFORM_APPLE)
+#if defined(ANGLE_PLATFORM_APPLE) || defined(ANGLE_PLATFORM_WIIU)
     SetDisplayTLS(tlsData);
 #else
     gDisplayTLS = tlsData;

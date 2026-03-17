@@ -1,5 +1,5 @@
 # This file was generated with the command:
-# "gni-to-cmake.py" "util/BUILD.gn" "Util.cmake" "--prepend" "util/"
+# "./gni-to-cmake.py" "util/BUILD.gn" "Util.cmake" "--prepend" "util/"
 
 # Copyright 2019 The ANGLE Project Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
@@ -15,8 +15,8 @@ set(_util_sources
     "util/OSPixmap.h"
     "util/OSWindow.cpp"
     "util/OSWindow.h"
-    "util/angle_features_autogen.cpp"
-    "util/angle_features_autogen.h"
+    "util/autogen/angle_features_autogen.cpp"
+    "util/autogen/angle_features_autogen.h"
     "util/com_utils.h"
     "util/geometry_utils.cpp"
     "util/geometry_utils.h"
@@ -146,7 +146,7 @@ endif()
 if(angle_has_frame_capture)
 endif()
 
-foreach(is_shared_library IN LISTS "util/true" "util/false")
+foreach(is_shared_library IN LISTS "util/true""util/false")
 
     if(is_shared_library)
         set(library_type

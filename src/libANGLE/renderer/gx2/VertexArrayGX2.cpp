@@ -16,8 +16,9 @@
 namespace rx
 {
 
-VertexArrayGX2::VertexArrayGX2(const gl::VertexArrayState &data)
-    : VertexArrayImpl(data), mAttribStreamDirty(false), mHasFetchShader(false)
+VertexArrayGX2::VertexArrayGX2(const gl::VertexArrayState &data,
+                               const gl::VertexArrayBuffers &vertexArrayBuffers)
+    : VertexArrayImpl(data, vertexArrayBuffers), mAttribStreamDirty(false), mHasFetchShader(false)
 {}
 
 VertexArrayGX2::~VertexArrayGX2() {}
@@ -36,34 +37,31 @@ void VertexArrayGX2::destroy(const gl::Context *context)
 #define ANGLE_VERTEX_DIRTY_ATTRIB_FUNC(INDEX)                                                     \
     case gl::VertexArray::DIRTY_BIT_ATTRIB_0 + INDEX:                                             \
     {                                                                                             \
-        const bool bufferOnly =                                                                   \
-            (*attribBits)[INDEX].to_ulong() ==                                                    \
-            angle::Bit<unsigned long>(gl::VertexArray::DIRTY_ATTRIB_POINTER_BUFFER);              \
         ANGLE_TRY(syncDirtyAttrib(context, attribs[INDEX], bindings[attribs[INDEX].bindingIndex], \
-                                  INDEX, bufferOnly));                                            \
+                                  INDEX));                                                        \
         (*attribBits)[INDEX].reset();                                                             \
         break;                                                                                    \
     }
 
 // Since BINDING already implies DATA and ATTRIB change, we remove these here to avoid redundant
 // processing.
-#define ANGLE_VERTEX_DIRTY_BINDING_FUNC(INDEX)                                                     \
-    case gl::VertexArray::DIRTY_BIT_BINDING_0 + INDEX:                                             \
-        for (size_t attribIndex : bindings[INDEX].getBoundAttributesMask())                        \
-        {                                                                                          \
-            ANGLE_TRY(syncDirtyAttrib(context, attribs[attribIndex], bindings[INDEX], attribIndex, \
-                                      false));                                                     \
-            iter.resetLaterBit(gl::VertexArray::DIRTY_BIT_BUFFER_DATA_0 + attribIndex);            \
-            iter.resetLaterBit(gl::VertexArray::DIRTY_BIT_ATTRIB_0 + attribIndex);                 \
-            (*attribBits)[attribIndex].reset();                                                    \
-        }                                                                                          \
-        (*bindingBits)[INDEX].reset();                                                             \
+#define ANGLE_VERTEX_DIRTY_BINDING_FUNC(INDEX)                                                 \
+    case gl::VertexArray::DIRTY_BIT_BINDING_0 + INDEX:                                         \
+        for (size_t attribIndex : bindings[INDEX].getBoundAttributesMask())                    \
+        {                                                                                      \
+            ANGLE_TRY(                                                                         \
+                syncDirtyAttrib(context, attribs[attribIndex], bindings[INDEX], attribIndex)); \
+            iter.resetLaterBit(gl::VertexArray::DIRTY_BIT_BUFFER_DATA_0 + attribIndex);        \
+            iter.resetLaterBit(gl::VertexArray::DIRTY_BIT_ATTRIB_0 + attribIndex);             \
+            (*attribBits)[attribIndex].reset();                                                \
+        }                                                                                      \
+        (*bindingBits)[INDEX].reset();                                                         \
         break;
 
 #define ANGLE_VERTEX_DIRTY_BUFFER_DATA_FUNC(INDEX)                                                \
     case gl::VertexArray::DIRTY_BIT_BUFFER_DATA_0 + INDEX:                                        \
         ANGLE_TRY(syncDirtyAttrib(context, attribs[INDEX], bindings[attribs[INDEX].bindingIndex], \
-                                  INDEX, false));                                                 \
+                                  INDEX));                                                        \
         iter.resetLaterBit(gl::VertexArray::DIRTY_BIT_ATTRIB_0 + INDEX);                          \
         (*attribBits)[INDEX].reset();                                                             \
         break;
@@ -121,7 +119,7 @@ angle::Result VertexArrayGX2::syncStateForDraw(const gl::Context *context,
     {
         const gl::VertexAttribute &attrib = mState.getVertexAttribute(attribIndex);
         const gl::VertexBinding &binding  = mState.getVertexBinding(attribIndex);
-        gl::Buffer *buffer                = binding.getBuffer().get();
+        gl::Buffer *buffer                = getVertexArrayBuffer(attrib.bindingIndex);
         if (!buffer)
         {
             // TODO this handles client memory, but should be cleaned up, also wastes a lot of
@@ -199,15 +197,8 @@ angle::Result VertexArrayGX2::syncStateForDraw(const gl::Context *context,
 angle::Result VertexArrayGX2::syncDirtyAttrib(const gl::Context *context,
                                               const gl::VertexAttribute &attrib,
                                               const gl::VertexBinding &binding,
-                                              size_t attribIndex,
-                                              bool bufferOnly)
+                                              size_t attribIndex)
 {
-    if (bufferOnly)
-    {
-        // Only need to rebind the buffer in syncStateForDraw, no need to update attribs
-        return angle::Result::Continue;
-    }
-
     // TODO not every attrib format is natively supported
     // there needs to be conversion code somewhere here
     const gx2::AttribFormat &format = gx2::AttribFormat::Get(attrib.format->id);

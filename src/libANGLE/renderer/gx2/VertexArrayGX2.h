@@ -11,7 +11,8 @@ namespace rx
 class VertexArrayGX2 : public VertexArrayImpl
 {
   public:
-    VertexArrayGX2(const gl::VertexArrayState &data);
+    VertexArrayGX2(const gl::VertexArrayState &data,
+                   const gl::VertexArrayBuffers &vertexArrayBuffers);
     ~VertexArrayGX2() override;
 
     void destroy(const gl::Context *context) override;
@@ -35,8 +36,7 @@ class VertexArrayGX2 : public VertexArrayImpl
     angle::Result syncDirtyAttrib(const gl::Context *context,
                                   const gl::VertexAttribute &attrib,
                                   const gl::VertexBinding &binding,
-                                  size_t attribIndex,
-                                  bool bufferOnly);
+                                  size_t attribIndex);
     angle::Result syncDirtyBufferData(const gl::Context *context, size_t bindingIndex);
 
     gl::AttribArray<GX2AttribStream> mAttribStreams;

@@ -53,14 +53,15 @@ void BufferGX2::destroy(const gl::Context *context)
 {
     ContextGX2 *contextGX2 = GetImplAs<ContextGX2>(context);
 
-    mBuffer.destroy(contextGX2);
+    mBuffer.destroy(contextGX2->getRenderer());
 }
 
 angle::Result BufferGX2::setData(const gl::Context *context,
                                  gl::BufferBinding target,
                                  const void *data,
                                  size_t size,
-                                 gl::BufferUsage usage)
+                                 gl::BufferUsage usage,
+                                 BufferFeedback *feedback)
 {
     ContextGX2 *contextGX2 = GetImplAs<ContextGX2>(context);
 
@@ -69,8 +70,8 @@ angle::Result BufferGX2::setData(const gl::Context *context,
     if (needsBufferReallocation(contextGX2, size))
     {
         ANGLE_CHECK_GL_ALLOC(
-            contextGX2,
-            mBuffer.initAllocation(contextGX2, GetAlignmentForBufferBinding(mBufferBinding), size));
+            contextGX2, mBuffer.initAllocation(contextGX2->getRenderer(),
+                                               GetAlignmentForBufferBinding(mBufferBinding), size));
     }
 
     if (data != nullptr)
@@ -85,7 +86,8 @@ angle::Result BufferGX2::setSubData(const gl::Context *context,
                                     gl::BufferBinding target,
                                     const void *data,
                                     size_t size,
-                                    size_t offset)
+                                    size_t offset,
+                                    BufferFeedback *feedback)
 {
     ContextGX2 *contextGX2 = GetImplAs<ContextGX2>(context);
 
@@ -98,7 +100,8 @@ angle::Result BufferGX2::copySubData(const gl::Context *context,
                                      BufferImpl *source,
                                      GLintptr sourceOffset,
                                      GLintptr destOffset,
-                                     GLsizeiptr size)
+                                     GLsizeiptr size,
+                                     BufferFeedback *feedback)
 {
     ContextGX2 *contextGX2 = GetImplAs<ContextGX2>(context);
     BufferGX2 *sourceGX2   = GetAs<BufferGX2>(source);
@@ -106,7 +109,10 @@ angle::Result BufferGX2::copySubData(const gl::Context *context,
     return setDataImpl(contextGX2, sourceGX2->getDataPtr(), sourceOffset, size, destOffset);
 }
 
-angle::Result BufferGX2::map(const gl::Context *context, GLenum access, void **mapPtr)
+angle::Result BufferGX2::map(const gl::Context *context,
+                             GLenum access,
+                             void **mapPtr,
+                             BufferFeedback *feedback)
 {
     ContextGX2 *contextGX2 = GetImplAs<ContextGX2>(context);
 
@@ -118,7 +124,8 @@ angle::Result BufferGX2::mapRange(const gl::Context *context,
                                   size_t offset,
                                   size_t length,
                                   GLbitfield access,
-                                  void **mapPtr)
+                                  void **mapPtr,
+                                  BufferFeedback *feedback)
 {
     ContextGX2 *contextGX2 = GetImplAs<ContextGX2>(context);
 
@@ -126,7 +133,9 @@ angle::Result BufferGX2::mapRange(const gl::Context *context,
     return mapBufferImpl(contextGX2, forWrite, offset, length, mapPtr);
 }
 
-angle::Result BufferGX2::unmap(const gl::Context *context, GLboolean *result)
+angle::Result BufferGX2::unmap(const gl::Context *context,
+                               GLboolean *result,
+                               BufferFeedback *feedback)
 {
     if (mIsMappedForWrite)
     {

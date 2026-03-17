@@ -2,6 +2,7 @@
 #define LIBANGLE_RENDERER_GX2_DISPLAYGX2_H_
 
 #include "libANGLE/renderer/DisplayImpl.h"
+#include "libANGLE/renderer/ShareGroupImpl.h"
 
 namespace rx
 {
@@ -9,7 +10,10 @@ namespace rx
 class RendererGX2;
 
 class ShareGroupGX2 : public ShareGroupImpl
-{};
+{
+  public:
+    ShareGroupGX2(const egl::ShareGroupState &state) : ShareGroupImpl(state) {}
+};
 
 class DisplayGX2 : public DisplayImpl
 {
@@ -40,7 +44,6 @@ class DisplayGX2 : public DisplayImpl
     egl::Error waitNative(const gl::Context *context, EGLint engine) override;
     gl::Version getMaxSupportedESVersion() const override;
     gl::Version getMaxConformantESVersion() const override;
-    Optional<gl::Version> getMaxSupportedDesktopVersion() const override;
 
     SurfaceImpl *createWindowSurface(const egl::SurfaceState &state,
                                      EGLNativeWindowType window,
@@ -69,7 +72,7 @@ class DisplayGX2 : public DisplayImpl
     StreamProducerImpl *createStreamProducerD3DTexture(egl::Stream::ConsumerType consumerType,
                                                        const egl::AttributeMap &attribs) override;
 
-    ShareGroupImpl *createShareGroup() override;
+    ShareGroupImpl *createShareGroup(const egl::ShareGroupState &state) override;
 
     void populateFeatureList(angle::FeatureList *features) override {}
 

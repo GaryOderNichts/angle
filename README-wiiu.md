@@ -1,3 +1,9 @@
+## Setup the repository
+```
+   # The following submodules need to be initialized:
+   git submodule update --init third_party/zlib/
+```
+
 ## Building
 ```
    # configure

@@ -27,6 +27,8 @@ set(null_backend_sources
     "src/libANGLE/renderer/null/FramebufferNULL.h"
     "src/libANGLE/renderer/null/ImageNULL.cpp"
     "src/libANGLE/renderer/null/ImageNULL.h"
+    "src/libANGLE/renderer/null/ProgramExecutableNULL.cpp"
+    "src/libANGLE/renderer/null/ProgramExecutableNULL.h"
     "src/libANGLE/renderer/null/ProgramNULL.cpp"
     "src/libANGLE/renderer/null/ProgramNULL.h"
     "src/libANGLE/renderer/null/ProgramPipelineNULL.cpp"

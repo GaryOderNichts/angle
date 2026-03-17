@@ -11,6 +11,8 @@ set(gx2_backend_sources
     "src/libANGLE/renderer/gx2/DisplayGX2.h"
     "src/libANGLE/renderer/gx2/FramebufferGX2.cpp"
     "src/libANGLE/renderer/gx2/FramebufferGX2.h"
+    "src/libANGLE/renderer/gx2/ProgramExecutableGX2.cpp"
+    "src/libANGLE/renderer/gx2/ProgramExecutableGX2.h"
     "src/libANGLE/renderer/gx2/ProgramGX2.cpp"
     "src/libANGLE/renderer/gx2/ProgramGX2.h"
     "src/libANGLE/renderer/gx2/RenderbufferGX2.cpp"
@@ -67,9 +69,6 @@ if (USE_ANGLE_EGL OR ENABLE_WEBGL)
         #ANGLE_ENABLE_NULL
         ANGLE_ENABLE_GX2
         ANGLE_ENABLE_GLSL
-
-        # TODO(wiiu) desktop stuff
-        # ANGLE_ENABLE_GL_DESKTOP_FRONTEND
 
         ANGLE_ASSERT_ALWAYS_ON
         ANGLE_TRACE_ENABLED

@@ -136,12 +136,6 @@ gl::Version DisplayGX2::getMaxSupportedESVersion() const
     return gl::Version(3, 2);
 }
 
-Optional<gl::Version> DisplayGX2::getMaxSupportedDesktopVersion() const
-{
-    // TODO desktop stuff
-    return gl::Version(3, 3);
-}
-
 gl::Version DisplayGX2::getMaxConformantESVersion() const
 {
     return getMaxSupportedESVersion();
@@ -203,9 +197,9 @@ StreamProducerImpl *DisplayGX2::createStreamProducerD3DTexture(
     return nullptr;
 }
 
-ShareGroupImpl *DisplayGX2::createShareGroup()
+ShareGroupImpl *DisplayGX2::createShareGroup(const egl::ShareGroupState &state)
 {
-    return new ShareGroupGX2();
+    return new ShareGroupGX2(state);
 }
 
 void DisplayGX2::generateExtensions(egl::DisplayExtensions *outExtensions) const

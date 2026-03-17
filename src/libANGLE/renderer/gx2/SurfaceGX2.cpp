@@ -88,7 +88,7 @@ egl::Error SurfaceGX2::initialize(const egl::Display *display)
     return egl::NoError();
 }
 
-egl::Error SurfaceGX2::swap(const gl::Context *context)
+egl::Error SurfaceGX2::swap(const gl::Context *context, SurfaceSwapFeedback *feedback)
 {
     ContextGX2 *contextGX2 = GetImplAs<ContextGX2>(context);
 
@@ -145,28 +145,24 @@ egl::Error SurfaceGX2::releaseTexImage(const gl::Context *context, EGLint buffer
 egl::Error SurfaceGX2::getSyncValues(EGLuint64KHR *ust, EGLuint64KHR *msc, EGLuint64KHR *sbc)
 {
     UNIMPLEMENTED();
-    return egl::EglBadAccess();
+    return egl::Error(EGL_BAD_ACCESS);
 }
 
 egl::Error SurfaceGX2::getMscRate(EGLint *numerator, EGLint *denominator)
 {
     UNIMPLEMENTED();
-    return egl::EglBadAccess();
+    return egl::Error(EGL_BAD_ACCESS);
 }
 
-void SurfaceGX2::setSwapInterval(EGLint interval)
+void SurfaceGX2::setSwapInterval(const egl::Display *display, EGLint interval)
 {
     GX2SetSwapInterval(interval);
 }
 
-EGLint SurfaceGX2::getWidth() const
+gl::Extents SurfaceGX2::getSize() const
 {
-    return mColorRenderTarget.getWidth();
-}
-
-EGLint SurfaceGX2::getHeight() const
-{
-    return mColorRenderTarget.getHeight();
+    return gl::Extents(mColorRenderTarget.getWidth(), mColorRenderTarget.getHeight(),
+                       1);  // TODO depth?
 }
 
 EGLint SurfaceGX2::isPostSubBufferSupported() const

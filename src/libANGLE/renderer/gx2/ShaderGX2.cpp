@@ -10,9 +10,8 @@ ShaderGX2::ShaderGX2(const gl::ShaderState &data) : ShaderImpl(data) {}
 
 ShaderGX2::~ShaderGX2() {}
 
-std::shared_ptr<WaitableCompileEvent> ShaderGX2::compile(const gl::Context *context,
-                                                         gl::ShCompilerInstance *compilerInstance,
-                                                         ShCompileOptions *options)
+std::shared_ptr<ShaderTranslateTask> ShaderGX2::compile(const gl::Context *context,
+                                                        ShCompileOptions *options)
 {
     const gl::Extensions &extensions = context->getImplementation()->getExtensions();
     if (extensions.shaderPixelLocalStorageANGLE)
@@ -20,13 +19,20 @@ std::shared_ptr<WaitableCompileEvent> ShaderGX2::compile(const gl::Context *cont
         options->pls = context->getImplementation()->getNativePixelLocalStorageOptions();
     }
 
-    // Just translate the source, actual compilation will happen upon linking
-    return compileImpl(context, compilerInstance, mState.getSource(), options);
+    // Translate the shader (No need to do any post processing)
+    return std::shared_ptr<ShaderTranslateTask>(new ShaderTranslateTask);
+}
+
+std::shared_ptr<ShaderTranslateTask> ShaderGX2::load(const gl::Context *context,
+                                                     gl::BinaryInputStream *stream)
+{
+    UNIMPLEMENTED();
+    return std::shared_ptr<ShaderTranslateTask>(new ShaderTranslateTask);
 }
 
 std::string ShaderGX2::getDebugInfo() const
 {
-    return mState.getTranslatedSource();
+    return *mState.getCompiledState()->translatedSource;
 }
 
 }  // namespace rx

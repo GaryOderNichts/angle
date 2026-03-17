@@ -4,6 +4,7 @@
 #include "libANGLE/renderer/gx2/BufferGX2.h"
 #include "libANGLE/renderer/gx2/CompilerGX2.h"
 #include "libANGLE/renderer/gx2/FramebufferGX2.h"
+#include "libANGLE/renderer/gx2/ProgramExecutableGX2.h"
 #include "libANGLE/renderer/gx2/ProgramGX2.h"
 #include "libANGLE/renderer/gx2/RenderTargetGX2.h"
 #include "libANGLE/renderer/gx2/RenderbufferGX2.h"
@@ -135,7 +136,7 @@ void ContextGX2::onDestroy(const gl::Context *context)
     mContextState = nullptr;
 }
 
-angle::Result ContextGX2::initialize()
+angle::Result ContextGX2::initialize(const angle::ImageLoadContext &imageLoadContext)
 {
     mContextState = static_cast<GX2ContextState *>(
         memalign(GX2_CONTEXT_STATE_ALIGNMENT, sizeof(GX2ContextState)));
@@ -431,17 +432,17 @@ angle::Result ContextGX2::popDebugGroup(const gl::Context *context)
 }
 
 angle::Result ContextGX2::syncState(const gl::Context *context,
-                                    const gl::State::DirtyBits &dirtyBits,
-                                    const gl::State::DirtyBits &bitMask,
-                                    const gl::State::ExtendedDirtyBits &extendedDirtyBits,
-                                    const gl::State::ExtendedDirtyBits &extendedBitMask,
+                                    const gl::state::DirtyBits dirtyBits,
+                                    const gl::state::DirtyBits bitMask,
+                                    const gl::state::ExtendedDirtyBits extendedDirtyBits,
+                                    const gl::state::ExtendedDirtyBits extendedBitMask,
                                     gl::Command command)
 {
     for (size_t dirtyBit : dirtyBits)
     {
         switch (dirtyBit)
         {
-            case gl::State::DIRTY_BIT_DRAW_FRAMEBUFFER_BINDING:
+            case gl::state::DIRTY_BIT_DRAW_FRAMEBUFFER_BINDING:
             {
                 // TODO
 
@@ -471,7 +472,7 @@ angle::Result ContextGX2::syncState(const gl::Context *context,
                 }
                 break;
             }
-            case gl::State::DIRTY_BIT_VIEWPORT:
+            case gl::state::DIRTY_BIT_VIEWPORT:
             {
                 mViewportRect = mState.getViewport();
 
@@ -490,14 +491,14 @@ angle::Result ContextGX2::syncState(const gl::Context *context,
                 mInternalDirtyBits.set(DIRTY_BIT_GX2_VIEWPORT);
                 break;
             }
-            case gl::State::DIRTY_BIT_DEPTH_RANGE:
+            case gl::state::DIRTY_BIT_DEPTH_RANGE:
                 mNearZ = mState.getNearPlane();
                 mFarZ  = mState.getFarPlane();
 
                 mInternalDirtyBits.set(DIRTY_BIT_GX2_VIEWPORT);
                 break;
-            case gl::State::DIRTY_BIT_SCISSOR_TEST_ENABLED:
-            case gl::State::DIRTY_BIT_SCISSOR:
+            case gl::state::DIRTY_BIT_SCISSOR_TEST_ENABLED:
+            case gl::state::DIRTY_BIT_SCISSOR:
             {
                 if (mState.isScissorTestEnabled())
                 {
@@ -512,13 +513,13 @@ angle::Result ContextGX2::syncState(const gl::Context *context,
                 mInternalDirtyBits.set(DIRTY_BIT_GX2_SCISSOR);
                 break;
             }
-            case gl::State::DIRTY_BIT_PROGRAM_EXECUTABLE:
+            case gl::state::DIRTY_BIT_PROGRAM_EXECUTABLE:
             {
                 mInternalDirtyBits.set(DIRTY_BIT_GX2_SHADERS);
                 break;
             }
-            case gl::State::DIRTY_BIT_CULL_FACE_ENABLED:
-            case gl::State::DIRTY_BIT_CULL_FACE:
+            case gl::state::DIRTY_BIT_CULL_FACE_ENABLED:
+            case gl::state::DIRTY_BIT_CULL_FACE:
             {
                 const gl::RasterizerState &rasterState = mState.getRasterizerState();
 
@@ -528,28 +529,28 @@ angle::Result ContextGX2::syncState(const gl::Context *context,
                 mInternalDirtyBits.set(DIRTY_BIT_GX2_POLYGON_CONTROL);
                 break;
             }
-            case gl::State::DIRTY_BIT_DEPTH_TEST_ENABLED:
+            case gl::state::DIRTY_BIT_DEPTH_TEST_ENABLED:
             {
                 mDepthTest = mState.getDepthStencilState().depthTest;
 
                 mInternalDirtyBits.set(DIRTY_BIT_GX2_DEPTH_STENCIL);
                 break;
             }
-            case gl::State::DIRTY_BIT_DEPTH_MASK:
+            case gl::state::DIRTY_BIT_DEPTH_MASK:
             {
                 mDepthWrite = mState.getDepthStencilState().depthMask;
 
                 mInternalDirtyBits.set(DIRTY_BIT_GX2_DEPTH_STENCIL);
                 break;
             }
-            case gl::State::DIRTY_BIT_DEPTH_FUNC:
+            case gl::state::DIRTY_BIT_DEPTH_FUNC:
             {
                 mDepthCompare = gl_gx2::GetCompareFunction(mState.getDepthStencilState().depthFunc);
 
                 mInternalDirtyBits.set(DIRTY_BIT_GX2_DEPTH_STENCIL);
                 break;
             }
-            case gl::State::DIRTY_BIT_TEXTURE_BINDINGS:
+            case gl::state::DIRTY_BIT_TEXTURE_BINDINGS:
             {
                 // TODO
                 const gl::ProgramExecutable *executable = mState.getProgramExecutable();
@@ -587,21 +588,21 @@ angle::Result ContextGX2::syncState(const gl::Context *context,
                 }
                 break;
             }
-            case gl::State::DIRTY_BIT_BLEND_ENABLED:
+            case gl::state::DIRTY_BIT_BLEND_ENABLED:
             {
                 mBlendEnabled = mState.getBlendState().blend;
 
                 mInternalDirtyBits.set(DIRTY_BIT_GX2_COLOR_CONTROL);
                 break;
             }
-            case gl::State::DIRTY_BIT_BLEND_COLOR:
+            case gl::state::DIRTY_BIT_BLEND_COLOR:
             {
                 mBlendColor = mState.getBlendColor();
 
                 mInternalDirtyBits.set(DIRTY_BIT_GX2_BLEND_COLOR);
                 break;
             }
-            case gl::State::DIRTY_BIT_BLEND_FUNCS:
+            case gl::state::DIRTY_BIT_BLEND_FUNCS:
             {
                 // TODO ext blend state?
                 const gl::BlendState &blendState = mState.getBlendState();
@@ -614,7 +615,7 @@ angle::Result ContextGX2::syncState(const gl::Context *context,
                 mInternalDirtyBits.set(DIRTY_BIT_GX2_BLEND);
                 break;
             }
-            case gl::State::DIRTY_BIT_BLEND_EQUATIONS:
+            case gl::state::DIRTY_BIT_BLEND_EQUATIONS:
             {
                 const gl::BlendState &blendState = mState.getBlendState();
 
@@ -624,14 +625,14 @@ angle::Result ContextGX2::syncState(const gl::Context *context,
                 mInternalDirtyBits.set(DIRTY_BIT_GX2_BLEND);
                 break;
             }
-            case gl::State::DIRTY_BIT_POLYGON_OFFSET_FILL_ENABLED:
+            case gl::state::DIRTY_BIT_POLYGON_OFFSET_FILL_ENABLED:
             {
                 mPolygonOffsetEnable = mState.isPolygonOffsetFillEnabled();
 
                 mInternalDirtyBits.set(DIRTY_BIT_GX2_POLYGON_CONTROL);
                 break;
             }
-            case gl::State::DIRTY_BIT_POLYGON_OFFSET:
+            case gl::state::DIRTY_BIT_POLYGON_OFFSET:
             {
                 const gl::RasterizerState &rasterState = mState.getRasterizerState();
 
@@ -706,6 +707,11 @@ ProgramImpl *ContextGX2::createProgram(const gl::ProgramState &data)
     return new ProgramGX2(data);
 }
 
+ProgramExecutableImpl *ContextGX2::createProgramExecutable(const gl::ProgramExecutable *executable)
+{
+    return new ProgramExecutableGX2(executable);
+}
+
 FramebufferImpl *ContextGX2::createFramebuffer(const gl::FramebufferState &data)
 {
     return new FramebufferGX2(data, mRenderer);
@@ -726,9 +732,10 @@ BufferImpl *ContextGX2::createBuffer(const gl::BufferState &state)
     return new BufferGX2(state);
 }
 
-VertexArrayImpl *ContextGX2::createVertexArray(const gl::VertexArrayState &data)
+VertexArrayImpl *ContextGX2::createVertexArray(const gl::VertexArrayState &data,
+                                               const gl::VertexArrayBuffers &vertexArrayBuffers)
 {
-    return new VertexArrayGX2(data);
+    return new VertexArrayGX2(data, vertexArrayBuffers);
 }
 
 QueryImpl *ContextGX2::createQuery(gl::QueryType type)
@@ -851,9 +858,10 @@ angle::Result ContextGX2::updateState(const gl::Context *context)
                 break;
             case DIRTY_BIT_GX2_SHADERS:
             {
-                ProgramGX2 *programGX2 = GetImplAs<ProgramGX2>(mState.getProgram());
+                ProgramExecutableGX2 *programExecutableGX2 =
+                    GetImplAs<ProgramExecutableGX2>(mState.getProgramExecutable());
 
-                programGX2->setShaders(context);
+                programExecutableGX2->syncShaders(context);
                 break;
             }
             case DIRTY_BIT_GX2_POLYGON_CONTROL:
@@ -913,9 +921,10 @@ angle::Result ContextGX2::setupDraw(const gl::Context *context,
     updateState(context);
 
     VertexArrayGX2 *vaoGX2 = GetImplAs<VertexArrayGX2>(mState.getVertexArray());
-    ProgramGX2 *programGX2 = GetImplAs<ProgramGX2>(mState.getProgram());
+    ProgramExecutableGX2 *programExecutableGX2 =
+        GetImplAs<ProgramExecutableGX2>(mState.getProgramExecutable());
 
-    programGX2->syncUniformBlocks(context);
+    programExecutableGX2->syncUniformBlocks(context);
 
     ANGLE_TRY(vaoGX2->syncStateForDraw(context, firstVertex, vertexOrIndexCount, instanceCount,
                                        indexTypeOrInvalid, indices));
