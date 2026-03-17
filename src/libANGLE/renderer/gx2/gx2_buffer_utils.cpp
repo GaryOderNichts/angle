@@ -1,8 +1,5 @@
 #include "libANGLE/renderer/gx2/gx2_buffer_utils.h"
 
-#include "libANGLE/renderer/gx2/ContextGX2.h"
-#include "libANGLE/renderer/gx2/RendererGX2.h"
-
 #include <gx2/event.h>
 #include <gx2/mem.h>
 #include <gx2/state.h>
@@ -54,34 +51,30 @@ BufferHelper::BufferHelper() : mBufferAllocation(nullptr) {}
 
 BufferHelper::~BufferHelper() {}
 
-void BufferHelper::destroy(ContextGX2 *context)
+void BufferHelper::destroy(RendererGX2 *renderer)
 {
-    RendererGX2 *rendererGX2 = context->getRenderer();
-
     if (mBufferAllocation != nullptr)
     {
         // Add to the renderer free queue, we don't need to wait for unused
-        rendererGX2->freeMemory(mBufferAllocation->getDataPtr());
+        renderer->freeMemory(mBufferAllocation->getDataPtr());
 
         delete mBufferAllocation;
         mBufferAllocation = nullptr;
     }
 }
 
-bool BufferHelper::initAllocation(ContextGX2 *context, size_t alignment, size_t size)
+bool BufferHelper::initAllocation(RendererGX2 *renderer, size_t alignment, size_t size)
 {
-    RendererGX2 *rendererGX2 = context->getRenderer();
-
     if (mBufferAllocation != nullptr)
     {
         // Add previous allocation to the renderer free queue, we don't need to wait for unused
-        rendererGX2->freeMemory(mBufferAllocation->getDataPtr());
+        renderer->freeMemory(mBufferAllocation->getDataPtr());
 
         delete mBufferAllocation;
         mBufferAllocation = nullptr;
     }
 
-    void *buffer = rendererGX2->allocateMemory(alignment, size);
+    void *buffer = renderer->allocateMemory(alignment, size);
     if (!buffer)
     {
         // Uh oh

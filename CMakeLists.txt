@@ -16,7 +16,7 @@ if(MSVC)
     add_link_options(/guard:cf)
 endif()
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 if(NOT CMAKE_SYSTEM_NAME MATCHES "CafeOS")
@@ -291,6 +291,7 @@ if (USE_ANGLE_EGL OR ENABLE_WEBGL)
     target_compile_definitions(ANGLE PRIVATE
         ${no_gl_prototypes}
         LIBANGLE_IMPLEMENTATION
+        $<$<CONFIG:Debug>:XXH_NO_INLINE_HINTS>
     )
     target_compile_definitions(ANGLE PUBLIC ${ANGLE_DEFINITIONS})
     target_link_libraries(ANGLE PRIVATE ZLIB::ZLIB ${CMAKE_DL_LIBS})
@@ -304,9 +305,7 @@ if (USE_ANGLE_EGL OR ENABLE_WEBGL)
 
     add_library(GLESv2 ${GLESv2_LIBRARY_TYPE}
         ${libglesv2_sources}
-
-        # TODO(wiiu) desktop stuff
-        # ${libglesv2_gl_sources}
+        ${libglesv2_entry_point_sources}
     )
     target_include_directories(GLESv2 PRIVATE ${ANGLE_PRIVATE_INCLUDE_DIRECTORIES})
     target_compile_definitions(GLESv2 PRIVATE 

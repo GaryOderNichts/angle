@@ -2,7 +2,7 @@
 #define LIBANGLE_RENDERER_GX2_GX2_BUFFER_UTILS_H_
 
 #include "common/angleutils.h"
-#include "libANGLE/renderer/gx2/ContextGX2.h"
+#include "libANGLE/renderer/gx2/RendererGX2.h"
 
 #include <coreinit/time.h>
 #include <gx2/enum.h>
@@ -51,10 +51,10 @@ class BufferHelper final : angle::NonCopyable
     BufferHelper();
     ~BufferHelper();
 
-    void destroy(ContextGX2 *context);
+    void destroy(RendererGX2 *context);
 
     bool valid() const { return mBufferAllocation != nullptr; }
-    bool initAllocation(ContextGX2 *context, size_t alignment, size_t size);
+    bool initAllocation(RendererGX2 *context, size_t alignment, size_t size);
 
     bool waitUsed();
     void markUsed();
