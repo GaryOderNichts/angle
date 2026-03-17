@@ -124,17 +124,25 @@ angle::Result VertexArrayGX2::syncStateForDraw(const gl::Context *context,
         gl::Buffer *buffer                = binding.getBuffer().get();
         if (!buffer)
         {
-            const size_t bufferSize = vertexCount * binding.getStride();
-            // TODO this handles client memory, but should be cleaned up
-            const uint8_t *src =
-                static_cast<const uint8_t *>(attrib.pointer) + startVertex * binding.getStride();
-            uint8_t *dst = static_cast<uint8_t *>(contextGX2->getRenderer()->allocateFromRingBuffer(
-                GX2_VERTEX_BUFFER_ALIGNMENT, bufferSize));
+            // TODO this handles client memory, but should be cleaned up, also wastes a lot of
+            // memory
 
-            memcpy(dst, src, bufferSize);
-            GX2Invalidate(GX2_INVALIDATE_MODE_CPU_ATTRIBUTE_BUFFER, dst, bufferSize);
+            const size_t bufferSize = (startVertex + vertexCount) * binding.getStride();
+            uint8_t *buffer =
+                static_cast<uint8_t *>(contextGX2->getRenderer()->allocateFromRingBuffer(
+                    GX2_VERTEX_BUFFER_ALIGNMENT, bufferSize));
 
-            GX2SetAttribBuffer(attrib.bindingIndex, bufferSize, binding.getStride(), dst);
+            const uint8_t *src = static_cast<const uint8_t *>(attrib.pointer);
+            uint8_t *dst       = buffer;
+
+            // Need to offset both src and dst or indices will be off
+            src += startVertex * binding.getStride();
+            dst += startVertex * binding.getStride();
+
+            memcpy(dst, src, vertexCount * binding.getStride());
+
+            GX2Invalidate(GX2_INVALIDATE_MODE_CPU_ATTRIBUTE_BUFFER, buffer, bufferSize);
+            GX2SetAttribBuffer(attrib.bindingIndex, bufferSize, binding.getStride(), buffer);
             continue;
         }
 
