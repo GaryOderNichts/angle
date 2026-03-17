@@ -14,7 +14,7 @@
 
 namespace
 {
-constexpr uint32_t kRingBufferSize = 0x10000u;
+constexpr uint32_t kRingBufferSize = 0x100000u * 10;  // 10 MiB
 }  // namespace
 
 namespace rx
@@ -158,6 +158,7 @@ void *RendererGX2::allocateFromRingBuffer(size_t alignment, size_t size)
 
         if (mRingBufferOffset > kRingBufferSize)
         {
+            ASSERT(false);
             return nullptr;
         }
     }
