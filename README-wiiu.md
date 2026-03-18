@@ -1,7 +1,9 @@
 ## Setup the repository
 ```
-   # The following submodules need to be initialized:
+   # The following submodules are needed for building the project
    git submodule update --init third_party/zlib/
+   # The following submodules are needed for building tests
+   git submodule update --init third_party/googletest/src/
 ```
 
 ## Building

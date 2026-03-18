@@ -18,8 +18,10 @@
 #include <memory>
 #include <string>
 
+#if defined(ANGLE_HAS_RAPIDJSON)
 // Include forward delcarations for rapidjson types.
 #include <rapidjson/fwd.h>
+#endif // defined(ANGLE_HAS_RAPIDJSON)
 
 namespace catapult
 {

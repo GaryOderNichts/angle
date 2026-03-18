@@ -601,7 +601,7 @@ if (BUILD_TESTS)
     # other files
     list(APPEND angle_end2end_tests_sources
         "src/tests/angle_end2end_tests_main.cpp"
-        "src/tests/test_utils/runner/TestSuite.cpp"
+        # "src/tests/test_utils/runner/TestSuite.cpp"
         "src/tests/test_utils/MultiThreadSteps.cpp"
         "src/tests/test_utils/RenderDoc.cpp"
         "src/tests/test_utils/angle_test_configs.cpp"
