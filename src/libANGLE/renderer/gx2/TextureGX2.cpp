@@ -1,6 +1,7 @@
 #include "libANGLE/renderer/gx2/TextureGX2.h"
 
 #include "libANGLE/Context.h"
+#include "libANGLE/renderer/gx2/BufferGX2.h"
 #include "libANGLE/renderer/gx2/ContextGX2.h"
 #include "libANGLE/renderer/gx2/RendererGX2.h"
 #include "libANGLE/renderer/gx2/gx2_format_utils.h"
@@ -304,10 +305,33 @@ angle::Result TextureGX2::setImageImpl(const gl::Context *context,
 
     ContextGX2 *contextGX2 = GetImplAs<ContextGX2>(context);
 
-    // TODO mip maps & other dims & unpackBuffer
-    if (index.getLevelIndex() != 0 || index.getType() != gl::TextureType::_2D || pixels == nullptr)
+    // TODO support other dims
+    if (index.getType() != gl::TextureType::_2D)
     {
+        UNIMPLEMENTED();
         return angle::Result::Stop;
+    }
+
+    // Check if pixels need to be unpacked
+    // TODO allow for using this buffer as the underlying texture
+    if (unpackBuffer)
+    {
+        BufferGX2 *bufferGX2 = GetImplAs<BufferGX2>(unpackBuffer);
+
+        ptrdiff_t offset = reinterpret_cast<ptrdiff_t>(pixels);
+        pixels           = bufferGX2->getDataPtr() + offset;
+    }
+
+    if (!pixels)
+    {
+        // TODO still allocate underlying texture?
+        return angle::Result::Continue;
+    }
+
+    // TODO mip maps
+    if (index.getLevelIndex() != 0)
+    {
+        return angle::Result::Continue;
     }
 
     angle::FormatID angleFormatId =
