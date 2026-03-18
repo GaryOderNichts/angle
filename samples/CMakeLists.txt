@@ -27,7 +27,6 @@ endfunction()
 
 add_sample(fragcoord)
 add_sample(hello_triangle)
-add_sample(hello_triangle_gl)
 add_sample(hello_triangle_color)
 add_sample(hello_rectangle)
 add_sample(mip_map_2d)

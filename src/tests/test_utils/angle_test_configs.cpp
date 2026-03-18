@@ -826,33 +826,32 @@ PlatformParameters ES32_Zink()
 
 PlatformParameters ES1_GX2()
 {
-    return PlatformParameters(EGL_OPENGL_ES_API, 1, 0, 0, egl_platform::GX2());
+    return PlatformParameters(1, 0, egl_platform::GX2());
 }
 
 PlatformParameters ES2_GX2()
 {
-    return PlatformParameters(EGL_OPENGL_ES_API, 2, 0, 0, egl_platform::GX2());
+    return PlatformParameters(2, 0, egl_platform::GX2());
 }
 
 PlatformParameters ES3_GX2()
 {
-    return PlatformParameters(EGL_OPENGL_ES_API, 3, 0, 0, egl_platform::GX2());
+    return PlatformParameters(3, 0, egl_platform::GX2());
 }
 
 PlatformParameters ES31_GX2()
 {
-    return PlatformParameters(EGL_OPENGL_ES_API, 3, 1, 0, egl_platform::GX2());
+    return PlatformParameters(3, 1, egl_platform::GX2());
 }
 
 PlatformParameters ES32_GX2()
 {
-    return PlatformParameters(EGL_OPENGL_ES_API, 3, 2, 0, egl_platform::GX2());
+    return PlatformParameters(3, 2, egl_platform::GX2());
 }
 
 PlatformParameters GL32_CORE_GX2()
 {
-    return PlatformParameters(EGL_OPENGL_API, 3, 2, EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT,
-                              egl_platform::GX2());
+    return PlatformParameters(3, 2, egl_platform::GX2());
 }
 
 }  // namespace angle
