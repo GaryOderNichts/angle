@@ -122,8 +122,8 @@ void SetCurrentThreadTLS(Thread *thread)
 static angle::TLSIndex GetCurrentThreadTLSIndex()
 {
     static angle::TLSIndex CurrentThreadIndex = TLS_INVALID_INDEX;
-    static std::once_flag flag;
-    std::call_once(flag, [&]() {
+    static angle::wiiu_once_t flag = 0;
+    angle::wiiu_fast_once(&flag, +[]() {
         ASSERT(CurrentThreadIndex == TLS_INVALID_INDEX);
         CurrentThreadIndex = angle::CreateTLSIndex(nullptr);
     });

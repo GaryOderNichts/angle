@@ -274,8 +274,8 @@ uint64_t GetCurrentThreadUniqueId()
 {
     static std::atomic<uint32_t> globalThreadSerial;
     static angle::TLSIndex tlsIndex = TLS_INVALID_INDEX;
-    static std::once_flag flag;
-    std::call_once(flag, [&]() {
+    static wiiu_once_t flag = 0;
+    wiiu_fast_once(&flag, +[]() {
         ASSERT(tlsIndex == TLS_INVALID_INDEX);
         tlsIndex = angle::CreateTLSIndex(nullptr);
     });

@@ -655,8 +655,8 @@ void SetCurrentValidContextTLS(Context *context)
 static angle::TLSIndex GetCurrentValidContextTLSIndex()
 {
     static angle::TLSIndex CurrentValidContextIndex = TLS_INVALID_INDEX;
-    static std::once_flag flag;
-    std::call_once(flag, [&]() {
+    static angle::wiiu_once_t flag = 0;
+    angle::wiiu_fast_once(&flag, +[]() {
         ASSERT(CurrentValidContextIndex == TLS_INVALID_INDEX);
         CurrentValidContextIndex = angle::CreateTLSIndex(nullptr);
     });

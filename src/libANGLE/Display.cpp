@@ -192,8 +192,8 @@ void SetDisplayTLS(TLSData *tlsData)
 static angle::TLSIndex GetDisplayTLSIndex()
 {
     static angle::TLSIndex DisplayIndex = TLS_INVALID_INDEX;
-    static std::once_flag once;
-    std::call_once(once, [&]() {
+    static angle::wiiu_once_t flag = 0;
+    angle::wiiu_fast_once(&flag, +[]() {
       ASSERT(DisplayIndex == TLS_INVALID_INDEX);
       DisplayIndex = angle::CreateTLSIndex(nullptr);
     });
