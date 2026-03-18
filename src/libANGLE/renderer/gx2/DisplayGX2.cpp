@@ -228,6 +228,9 @@ void DisplayGX2::generateExtensions(egl::DisplayExtensions *outExtensions) const
     outExtensions->createContextClientArrays          = true;
     outExtensions->programCacheControlANGLE           = true;
     outExtensions->robustResourceInitializationANGLE  = true;
+
+    // Allow specifying EGL_WIDTH and EGL_HEIGHT for window surface
+    outExtensions->windowFixedSize = true;
 }
 
 void DisplayGX2::generateCaps(egl::Caps *outCaps) const
