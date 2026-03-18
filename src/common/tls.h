@@ -133,6 +133,34 @@ constexpr int kAndroidOpenGLTlsSlot = -5;
 
 #endif  // ANGLE_USE_ANDROID_TLS_SLOT
 
+#ifdef ANGLE_PLATFORM_WIIU
+
+#    include <coreinit/atomic.h>
+
+typedef volatile uint32_t wiiu_once_t;
+
+// The implementation of std::call_once is really slow, this provides a fast atomic once
+// implementation to initialize TLS
+static inline int wiiu_fast_once(wiiu_once_t *once, void (*func)(void))
+{
+    uint32_t value = 0;
+
+    if (OSCompareAndSwapAtomicEx(once, 0, 1, &value))
+    {
+        func();
+        OSSwapAtomic(once, 2);
+    }
+    else if (value != 2)
+    {
+        while (!OSCompareAndSwapAtomic(once, 2, 2))
+            ;
+    }
+
+    return 0;
+}
+
+#endif  // ANGLE_PLATFORM_WIIU
+
 using PthreadKeyDestructor = void (*)(void *);
 TLSIndex CreateTLSIndex(PthreadKeyDestructor destructor);
 bool DestroyTLSIndex(TLSIndex index);
