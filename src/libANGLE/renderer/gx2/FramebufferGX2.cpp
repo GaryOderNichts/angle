@@ -5,8 +5,14 @@
 
 #include "libANGLE/renderer/gx2/ContextGX2.h"
 #include "libANGLE/renderer/gx2/RenderTargetGX2.h"
+#include "libANGLE/renderer/gx2/gx2_format_utils.h"
 
 #include <gx2/clear.h>
+#include <gx2/event.h>
+#include <gx2/mem.h>
+#include <gx2/utils.h>
+
+#include <malloc.h>
 
 namespace rx
 {
@@ -133,40 +139,34 @@ angle::Result FramebufferGX2::clearBufferfi(const gl::Context *context,
 }
 
 angle::Result FramebufferGX2::readPixels(const gl::Context *context,
-                                         const gl::Rectangle &origArea,
+                                         const gl::Rectangle &area,
                                          GLenum format,
                                          GLenum type,
                                          const gl::PixelPackState &pack,
                                          gl::Buffer *packBuffer,
                                          void *ptrOrOffset)
 {
-    // Clip read area to framebuffer.
-    const gl::Extents &fbSize = getState().getReadPixelsAttachment(format)->getSize();
-    const gl::Rectangle fbRect(0, 0, fbSize.width, fbSize.height);
-
-    gl::Rectangle clippedArea;
-    if (!ClipRectangle(origArea, fbRect, &clippedArea))
-    {
-        // nothing to read
-        return angle::Result::Continue;
-    }
+    ContextGX2 *contextGX2 = GetImplAs<ContextGX2>(context);
 
     // Get read attachment
     const gl::FramebufferAttachment *readAttachment = mState.getReadPixelsAttachment(format);
     ASSERT(readAttachment);
 
-    // Get render target
-    RenderTargetGX2 *renderTarget = nullptr;
-    readAttachment->getRenderTarget(context, 0, &renderTarget);
-    ASSERT(renderTarget != nullptr);
-
-    if (format == GL_DEPTH_COMPONENT || format == GL_DEPTH_STENCIL_OES)
+    // Clip read area to framebuffer.
+    const gl::Extents &fbSize = readAttachment->getSize();
+    const gl::Rectangle fbRect(0, 0, fbSize.width, fbSize.height);
+    gl::Rectangle clippedArea;
+    if (!ClipRectangle(area, fbRect, &clippedArea))
     {
-        // TODO
+        // nothing to read
         return angle::Result::Continue;
     }
 
-    if (packBuffer)
+    // Get render target
+    RenderTargetGX2 *renderTarget = nullptr;
+    ANGLE_TRY(readAttachment->getRenderTarget(context, 0, &renderTarget));
+
+    if (format == GL_DEPTH_COMPONENT || format == GL_DEPTH_STENCIL_OES)
     {
         // TODO
         return angle::Result::Continue;
@@ -178,30 +178,42 @@ angle::Result FramebufferGX2::readPixels(const gl::Context *context,
     const gl::InternalFormat &sizedFormatInfo = gl::GetInternalFormatInfo(format, type);
 
     GLuint outputPitch;
-    sizedFormatInfo.computeRowPitch(type, clippedArea.width, pack.alignment, pack.rowLength,
-                                    &outputPitch);
+    ANGLE_CHECK_GL_MATH(contextGX2,
+                        sizedFormatInfo.computeRowPitch(type, area.width, pack.alignment,
+                                                        pack.rowLength, &outputPitch));
+
+    GLuint outputSkipBytes;
+    ANGLE_CHECK_GL_MATH(contextGX2, sizedFormatInfo.computeSkipBytes(type, outputPitch, 0, pack,
+                                                                     false, &outputSkipBytes));
+    outputSkipBytes += (clippedArea.x - area.x) * sizedFormatInfo.pixelBytes +
+                       (clippedArea.y - area.y) * outputPitch;
 
     GX2ColorBuffer *cb = colorTarget->getColorBuffer();
 
-    gl::Rectangle area;
-    area.width  = cb->surface.pitch;
-    area.height = cb->surface.height;
+    // The framebuffer might be swizzled, use a staging surface
+    // TODO we could use GX2CopySurfaceEx here, but that doesn't work in Cemu and makes proper
+    // format conversion more difficult
+    GX2Surface stagingSurface;
+    ANGLE_TRY(createStagingSurface(fbRect, sizedFormatInfo, &stagingSurface));
 
-    // TODO the framebuffer might be swizzled, use staging texture
-    const int pitch = cb->surface.pitch * 4;  // TODO
+    // Perform the copy
+    GX2CopySurface(&cb->surface, 0, 0, &stagingSurface, 0, 0);
+    // Make sure the GPU is done
+    GX2DrawDone();
+    // Restore context
+    contextGX2->applyContextState();
 
-    // TODO
-    PackPixelsParams params(area, GetFormatFromFormatType(format, type), outputPitch,
+    const uint32_t inputPitch = stagingSurface.pitch * sizedFormatInfo.pixelBytes;
+
+    PackPixelsParams params(clippedArea, GetFormatFromFormatType(format, type), outputPitch,
                             pack.reverseRowOrder, packBuffer, 0);
     PackPixels(params,
                angle::Format::Get(angle::Format::InternalFormatToID(
                    readAttachment->getFormat().info->sizedInternalFormat)),
-               pitch, static_cast<uint8_t *>(cb->surface.image),
-               static_cast<uint8_t *>(ptrOrOffset));
+               inputPitch, static_cast<const uint8_t *>(stagingSurface.image),
+               static_cast<uint8_t *>(ptrOrOffset) + outputSkipBytes);
 
-    // TODO remove
-    uint8_t pixel[4] = {64, 128, 128, 128};
-    memcpy(ptrOrOffset, pixel, sizeof(pixel));
+    destroyStagingSurface(&stagingSurface);
 
     return angle::Result::Continue;
 }
@@ -242,6 +254,42 @@ angle::Result FramebufferGX2::getSamplePosition(const gl::Context *context,
                                                 GLfloat *xy) const
 {
     return angle::Result::Continue;
+}
+
+angle::Result FramebufferGX2::createStagingSurface(gl::Rectangle bounds,
+                                                   const gl::InternalFormat &format,
+                                                   GX2Surface *surface)
+{
+    angle::FormatID angleFormatId = angle::Format::InternalFormatToID(format.sizedInternalFormat);
+    const gx2::SurfaceFormat &gx2Format = gx2::SurfaceFormat::Get(angleFormatId);
+
+    *surface           = {};
+    surface->use       = GX2_SURFACE_USE_TEXTURE;
+    surface->dim       = GX2_SURFACE_DIM_TEXTURE_2D;
+    surface->width     = bounds.width;
+    surface->height    = bounds.height;
+    surface->depth     = 1;
+    surface->mipLevels = 1;
+    // TODO what if this format is not the actual format?
+    surface->format   = gx2Format.getSurfaceFormat();
+    surface->aa       = GX2_AA_MODE1X;
+    surface->tileMode = GX2_TILE_MODE_LINEAR_ALIGNED;
+    GX2CalcSurfaceSizeAndAlignment(surface);
+
+    surface->image = memalign(surface->alignment, surface->imageSize);
+    if (!surface->image)
+    {
+        return angle::Result::Stop;
+    }
+
+    // Invalidate to be sure
+    GX2Invalidate(GX2_INVALIDATE_MODE_CPU_TEXTURE, surface->image, surface->imageSize);
+    return angle::Result::Continue;
+}
+
+void FramebufferGX2::destroyStagingSurface(GX2Surface *surface)
+{
+    free(surface->image);
 }
 
 }  // namespace rx
