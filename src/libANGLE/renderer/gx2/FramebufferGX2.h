@@ -3,6 +3,8 @@
 
 #include "libANGLE/renderer/FramebufferImpl.h"
 
+#include <gx2/surface.h>
+
 namespace rx
 {
 
@@ -70,7 +72,10 @@ class FramebufferGX2 : public FramebufferImpl
                                     GLfloat *xy) const override;
 
   private:
-    angle::Result clearImpl();
+    angle::Result createStagingSurface(gl::Rectangle bounds,
+                                       const gl::InternalFormat &format,
+                                       GX2Surface *surface);
+    void destroyStagingSurface(GX2Surface *surface);
 
     RendererGX2 *const mRenderer;
 };
