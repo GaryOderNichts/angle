@@ -75,4 +75,9 @@ if (USE_ANGLE_EGL OR ENABLE_WEBGL)
         # add this to get traces for every gl call
         # ANGLE_ENABLE_TRACE_EVENTS
     )
+
+    # Check if GLSL compiler should be loaded from RPL
+    if (NOT STATIC_GLSL_COMPILER)
+        list(APPEND ANGLE_DEFINITIONS GLSL_COMPILER_CAFE_RPL)
+    endif ()
 endif ()

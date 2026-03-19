@@ -296,6 +296,10 @@ if (USE_ANGLE_EGL OR ENABLE_WEBGL)
     target_compile_definitions(ANGLE PUBLIC ${ANGLE_DEFINITIONS})
     target_link_libraries(ANGLE PRIVATE ZLIB::ZLIB ${CMAKE_DL_LIBS})
 
+    if (is_wiiu AND STATIC_GLSL_COMPILER)
+        target_link_libraries(ANGLE PRIVATE glslcompiler)
+    endif ()
+
     target_compile_definitions(ANGLEFramework INTERFACE ${gl_prototypes})
 
     # add the lib prefix on wiiu
