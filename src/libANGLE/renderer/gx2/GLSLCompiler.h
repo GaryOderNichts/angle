@@ -1,11 +1,5 @@
 #pragma once
-#include <stdint.h>
-
-#if defined(__WUT__) || defined(__WIIU__)
-#    include <gx2/shaders.h>
-
-#    define GLSL_COMPILER_CAFE_RPL  // use compiler as rpl
-#endif
+#include <gx2/shaders.h>
 
 enum GLSL_COMPILER_FLAG
 {

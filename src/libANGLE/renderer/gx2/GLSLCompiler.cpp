@@ -15,7 +15,7 @@ void (*__GLSL_DestroyGLSLCompiler)();
 bool GLSL_Init()
 {
     void (*_InitGLSLCompiler)() = nullptr;
-#if defined(__WUT__) || defined(__WIIU__)
+#ifdef GLSL_COMPILER_CAFE_RPL
     // TODO FIXME we currently just return true for angle here since shutdown tends to fail
     if (s_glslCompilerModule != nullptr)
     {
