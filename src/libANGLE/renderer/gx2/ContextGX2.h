@@ -272,6 +272,11 @@ class ContextGX2 : public ContextImpl, public MultisampleTextureInitializer
                             gl::DrawElementsType indexTypeOrInvalid,
                             const void *indices);
 
+    void updateDrawFramebufferBinding(const gl::Context *context);
+    void updateViewport();
+    void updateScissor();
+    void updateTextureBindings();
+
     gl::Caps mCaps;
     gl::TextureCapsMap mTextureCaps;
     gl::Extensions mExtensions;

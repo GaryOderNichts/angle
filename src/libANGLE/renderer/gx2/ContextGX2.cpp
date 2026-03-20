@@ -438,154 +438,35 @@ angle::Result ContextGX2::syncState(const gl::Context *context,
                                     const gl::state::ExtendedDirtyBits extendedBitMask,
                                     gl::Command command)
 {
-    for (size_t dirtyBit : dirtyBits)
+    for (auto iter = dirtyBits.begin(), endIter = dirtyBits.end(); iter != endIter; ++iter)
     {
+        size_t dirtyBit = *iter;
         switch (dirtyBit)
         {
             case gl::state::DIRTY_BIT_DRAW_FRAMEBUFFER_BINDING:
             {
-                // TODO
-
-                const gl::FramebufferAttachment *colorAttachment =
-                    mState.getDrawFramebuffer()->getFirstColorAttachment();
-                ASSERT(colorAttachment != nullptr);
-
-                RenderTargetGX2 *renderTarget = nullptr;
-                colorAttachment->getRenderTarget(
-                    context, colorAttachment->getRenderToTextureSamples(), &renderTarget);
-                ASSERT(renderTarget != nullptr);
-
-                ColorRenderTargetGX2 *colorTarget = GetAs<ColorRenderTargetGX2>(renderTarget);
-                GX2SetColorBuffer(colorTarget->getColorBuffer(), GX2_RENDER_TARGET_0);
-
-                const gl::FramebufferAttachment *depthStencilAttachment =
-                    mState.getDrawFramebuffer()->getDepthOrStencilAttachment();
-                if (depthStencilAttachment)
-                {
-                    RenderTargetGX2 *renderTarget = nullptr;
-                    depthStencilAttachment->getRenderTarget(context, 0, &renderTarget);
-                    ASSERT(renderTarget != nullptr);
-
-                    DepthStencilRenderTargetGX2 *depthStencilTarget =
-                        GetAs<DepthStencilRenderTargetGX2>(renderTarget);
-                    GX2SetDepthBuffer(depthStencilTarget->getDepthBuffer());
-                }
+                updateDrawFramebufferBinding(context);
+                break;
+            }
+            case gl::state::DIRTY_BIT_SCISSOR_TEST_ENABLED:
+            case gl::state::DIRTY_BIT_SCISSOR:
+            {
+                updateScissor();
                 break;
             }
             case gl::state::DIRTY_BIT_VIEWPORT:
             {
-                mViewportRect = mState.getViewport();
-
-                // Recalc scissor
-                if (mState.isScissorTestEnabled())
-                {
-                    gl::ClipRectangle(mState.getScissor(), mViewportRect, &mScissorRect);
-                }
-                else
-                {
-                    // If scissor test is disabled use the full viewport as the scissor rect
-                    mScissorRect = mViewportRect;
-                }
-
-                mInternalDirtyBits.set(DIRTY_BIT_GX2_SCISSOR);
-                mInternalDirtyBits.set(DIRTY_BIT_GX2_VIEWPORT);
+                updateViewport();
+                // Need to recalculate scissor when updating the viewport
+                updateScissor();
                 break;
             }
             case gl::state::DIRTY_BIT_DEPTH_RANGE:
+            {
                 mNearZ = mState.getNearPlane();
                 mFarZ  = mState.getFarPlane();
 
                 mInternalDirtyBits.set(DIRTY_BIT_GX2_VIEWPORT);
-                break;
-            case gl::state::DIRTY_BIT_SCISSOR_TEST_ENABLED:
-            case gl::state::DIRTY_BIT_SCISSOR:
-            {
-                if (mState.isScissorTestEnabled())
-                {
-                    gl::ClipRectangle(mState.getScissor(), mViewportRect, &mScissorRect);
-                }
-                else
-                {
-                    // If scissor test is disabled use the full viewport as the scissor rect
-                    mScissorRect = mViewportRect;
-                }
-
-                mInternalDirtyBits.set(DIRTY_BIT_GX2_SCISSOR);
-                break;
-            }
-            case gl::state::DIRTY_BIT_PROGRAM_EXECUTABLE:
-            {
-                mInternalDirtyBits.set(DIRTY_BIT_GX2_SHADERS);
-                break;
-            }
-            case gl::state::DIRTY_BIT_CULL_FACE_ENABLED:
-            case gl::state::DIRTY_BIT_CULL_FACE:
-            {
-                const gl::RasterizerState &rasterState = mState.getRasterizerState();
-
-                gl_gx2::GetCullMode(rasterState, &mCullFront, &mCullBack);
-                mFrontFace = gl_gx2::GetFrontFace(rasterState.frontFace);
-
-                mInternalDirtyBits.set(DIRTY_BIT_GX2_POLYGON_CONTROL);
-                break;
-            }
-            case gl::state::DIRTY_BIT_DEPTH_TEST_ENABLED:
-            {
-                mDepthTest = mState.getDepthStencilState().depthTest;
-
-                mInternalDirtyBits.set(DIRTY_BIT_GX2_DEPTH_STENCIL);
-                break;
-            }
-            case gl::state::DIRTY_BIT_DEPTH_MASK:
-            {
-                mDepthWrite = mState.getDepthStencilState().depthMask;
-
-                mInternalDirtyBits.set(DIRTY_BIT_GX2_DEPTH_STENCIL);
-                break;
-            }
-            case gl::state::DIRTY_BIT_DEPTH_FUNC:
-            {
-                mDepthCompare = gl_gx2::GetCompareFunction(mState.getDepthStencilState().depthFunc);
-
-                mInternalDirtyBits.set(DIRTY_BIT_GX2_DEPTH_STENCIL);
-                break;
-            }
-            case gl::state::DIRTY_BIT_TEXTURE_BINDINGS:
-            {
-                // TODO
-                const gl::ProgramExecutable *executable = mState.getProgramExecutable();
-                ASSERT(executable);
-
-                if (executable->hasTextures())
-                {
-                    const gl::ActiveTexturesCache &textures = mState.getActiveTexturesCache();
-                    const gl::ActiveTextureMask &activeTextures =
-                        executable->getActiveSamplersMask();
-                    const gl::ActiveTextureTypeArray &textureTypes =
-                        executable->getActiveSamplerTypes();
-
-                    for (size_t textureUnit : activeTextures)
-                    {
-                        gl::Texture *texture = textures[textureUnit];
-
-                        // nullptr means incomplete texture
-                        if (texture == nullptr)
-                        {
-                            // TODO this depends on setStorage / setSubImage which is currently not
-                            // implemented
-                            break;
-                            // ANGLE_TRY(mIncompleteTextures.getIncompleteTexture(
-                            //     context, textureTypes[textureUnit],
-                            //     executable->getSamplerFormatForTextureUnitIndex(textureUnit),
-                            //     this, &texture));
-                        }
-
-                        TextureGX2 *textureGX2 = GetImplAs<TextureGX2>(texture);
-
-                        GX2SetPixelTexture(textureGX2->getTexture(), textureUnit);
-                        GX2SetPixelSampler(textureGX2->getSampler(), textureUnit);
-                    }
-                }
                 break;
             }
             case gl::state::DIRTY_BIT_BLEND_ENABLED:
@@ -625,6 +506,38 @@ angle::Result ContextGX2::syncState(const gl::Context *context,
                 mInternalDirtyBits.set(DIRTY_BIT_GX2_BLEND);
                 break;
             }
+            case gl::state::DIRTY_BIT_DEPTH_TEST_ENABLED:
+            {
+                mDepthTest = mState.getDepthStencilState().depthTest;
+
+                mInternalDirtyBits.set(DIRTY_BIT_GX2_DEPTH_STENCIL);
+                break;
+            }
+            case gl::state::DIRTY_BIT_DEPTH_FUNC:
+            {
+                mDepthCompare = gl_gx2::GetCompareFunction(mState.getDepthStencilState().depthFunc);
+
+                mInternalDirtyBits.set(DIRTY_BIT_GX2_DEPTH_STENCIL);
+                break;
+            }
+            case gl::state::DIRTY_BIT_DEPTH_MASK:
+            {
+                mDepthWrite = mState.getDepthStencilState().depthMask;
+
+                mInternalDirtyBits.set(DIRTY_BIT_GX2_DEPTH_STENCIL);
+                break;
+            }
+            case gl::state::DIRTY_BIT_CULL_FACE_ENABLED:
+            case gl::state::DIRTY_BIT_CULL_FACE:
+            {
+                const gl::RasterizerState &rasterState = mState.getRasterizerState();
+
+                gl_gx2::GetCullMode(rasterState, &mCullFront, &mCullBack);
+                mFrontFace = gl_gx2::GetFrontFace(rasterState.frontFace);
+
+                mInternalDirtyBits.set(DIRTY_BIT_GX2_POLYGON_CONTROL);
+                break;
+            }
             case gl::state::DIRTY_BIT_POLYGON_OFFSET_FILL_ENABLED:
             {
                 mPolygonOffsetEnable = mState.isPolygonOffsetFillEnabled();
@@ -641,6 +554,34 @@ angle::Result ContextGX2::syncState(const gl::Context *context,
                 mPolygonClamp  = rasterState.polygonOffsetClamp;
 
                 mInternalDirtyBits.set(DIRTY_BIT_GX2_POLYGON_OFFSET);
+                break;
+            }
+            case gl::state::DIRTY_BIT_CLEAR_COLOR:
+                // Clear color is read from state upon framebuffer clear
+                break;
+            case gl::state::DIRTY_BIT_CLEAR_STENCIL:
+                // Stencil is read from state upon framebuffer clear
+                break;
+            case gl::state::DIRTY_BIT_PROGRAM_BINDING:
+                static_assert(
+                    gl::state::DIRTY_BIT_PROGRAM_EXECUTABLE > gl::state::DIRTY_BIT_PROGRAM_BINDING,
+                    "Dirty bit order");
+                iter.setLaterBit(gl::state::DIRTY_BIT_PROGRAM_EXECUTABLE);
+                break;
+            case gl::state::DIRTY_BIT_PROGRAM_EXECUTABLE:
+            {
+                mInternalDirtyBits.set(DIRTY_BIT_GX2_SHADERS);
+                break;
+            }
+            case gl::state::DIRTY_BIT_TEXTURE_BINDINGS:
+            {
+                updateTextureBindings();
+                break;
+            }
+            default:
+            {
+                WARN() << "\t! Unimplemented dirty bit: " << dirtyBit;
+                ASSERT(NOASSERT_UNIMPLEMENTED);
                 break;
             }
         }
@@ -851,10 +792,8 @@ angle::Result ContextGX2::updateState(const gl::Context *context)
                                mViewportRect.height, mNearZ, mFarZ);
                 break;
             case DIRTY_BIT_GX2_SCISSOR:
-                // TODO update this if we end up supporting inverted viewports
-                GX2SetScissor(mScissorRect.x,
-                              mViewportRect.height - mScissorRect.y - mScissorRect.height,
-                              mScissorRect.width, mScissorRect.height);
+                GX2SetScissor(mScissorRect.x, mScissorRect.y, mScissorRect.width,
+                              mScissorRect.height);
                 break;
             case DIRTY_BIT_GX2_SHADERS:
             {
@@ -930,6 +869,105 @@ angle::Result ContextGX2::setupDraw(const gl::Context *context,
                                        indexTypeOrInvalid, indices));
 
     return angle::Result::Continue;
+}
+
+void ContextGX2::updateDrawFramebufferBinding(const gl::Context *context)
+{
+    const gl::FramebufferAttachment *colorAttachment =
+        mState.getDrawFramebuffer()->getFirstColorAttachment();
+    if (colorAttachment)
+    {
+        RenderTargetGX2 *renderTarget = nullptr;
+        colorAttachment->getRenderTarget(context, colorAttachment->getRenderToTextureSamples(),
+                                         &renderTarget);
+        ASSERT(renderTarget != nullptr);
+
+        ColorRenderTargetGX2 *colorTarget = GetAs<ColorRenderTargetGX2>(renderTarget);
+        GX2SetColorBuffer(colorTarget->getColorBuffer(), GX2_RENDER_TARGET_0);
+    }
+
+    const gl::FramebufferAttachment *depthStencilAttachment =
+        mState.getDrawFramebuffer()->getDepthOrStencilAttachment();
+    if (depthStencilAttachment)
+    {
+        RenderTargetGX2 *renderTarget = nullptr;
+        depthStencilAttachment->getRenderTarget(context, 0, &renderTarget);
+        ASSERT(renderTarget != nullptr);
+
+        DepthStencilRenderTargetGX2 *depthStencilTarget =
+            GetAs<DepthStencilRenderTargetGX2>(renderTarget);
+        GX2SetDepthBuffer(depthStencilTarget->getDepthBuffer());
+    }
+
+    // Recalculate viewport and scissor
+    updateViewport();
+    updateScissor();
+}
+
+void ContextGX2::updateViewport()
+{
+    // TODO clamp viewport?
+    // TODO flip Y?
+    mViewportRect = mState.getViewport();
+
+    mInternalDirtyBits.set(DIRTY_BIT_GX2_VIEWPORT);
+}
+
+void ContextGX2::updateScissor()
+{
+    // Get the full render area
+    const gl::Framebuffer *framebuffer  = mState.getDrawFramebuffer();
+    const gl::Box framebufferDimensions = framebuffer->getState().getDimensions();
+    gl::Rectangle renderArea{0, 0, framebufferDimensions.width, framebufferDimensions.height};
+
+    // Clip viewport to render area
+    gl::Rectangle viewportClippedRenderArea;
+    if (!gl::ClipRectangle(renderArea, mState.getViewport(), &viewportClippedRenderArea))
+    {
+        viewportClippedRenderArea = gl::Rectangle();
+    }
+
+    // Get scissored area
+    mScissorRect = ClipRectToScissor(getState(), viewportClippedRenderArea, false);
+
+    // TODO flip Y?
+
+    mInternalDirtyBits.set(DIRTY_BIT_GX2_SCISSOR);
+}
+
+void ContextGX2::updateTextureBindings()
+{
+    const gl::ProgramExecutable *executable = mState.getProgramExecutable();
+    ASSERT(executable);
+
+    if (executable->hasTextures())
+    {
+        const gl::ActiveTexturesCache &textures        = mState.getActiveTexturesCache();
+        const gl::ActiveTextureMask &activeTextures    = executable->getActiveSamplersMask();
+        const gl::ActiveTextureTypeArray &textureTypes = executable->getActiveSamplerTypes();
+
+        for (size_t textureUnit : activeTextures)
+        {
+            gl::Texture *texture = textures[textureUnit];
+
+            // nullptr means incomplete texture
+            if (texture == nullptr)
+            {
+                // TODO this depends on setStorage / setSubImage which is currently not
+                // implemented
+                break;
+                // ANGLE_TRY(mIncompleteTextures.getIncompleteTexture(
+                //     context, textureTypes[textureUnit],
+                //     executable->getSamplerFormatForTextureUnitIndex(textureUnit),
+                //     this, &texture));
+            }
+
+            TextureGX2 *textureGX2 = GetImplAs<TextureGX2>(texture);
+
+            GX2SetPixelTexture(textureGX2->getTexture(), textureUnit);
+            GX2SetPixelSampler(textureGX2->getSampler(), textureUnit);
+        }
+    }
 }
 
 }  // namespace rx
