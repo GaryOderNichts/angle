@@ -2,9 +2,7 @@
 
 #include "libANGLE/Context.h"
 #include "libANGLE/renderer/gx2/BufferGX2.h"
-#include "libANGLE/renderer/gx2/ContextGX2.h"
 #include "libANGLE/renderer/gx2/RendererGX2.h"
-#include "libANGLE/renderer/gx2/gx2_format_utils.h"
 #include "libANGLE/renderer/gx2/gx2_utils.h"
 #include "libANGLE/renderer/load_functions_table.h"
 
@@ -18,13 +16,32 @@
 namespace rx
 {
 
-TextureGX2::TextureGX2(const gl::TextureState &state) : TextureImpl(state)
+TextureGX2::TextureGX2(const gl::TextureState &state)
+    : TextureImpl(state), mTexture(), mSampler(), mRenderTarget()
 {
     // init samplers to default
     GX2InitSampler(&mSampler, GX2_TEX_CLAMP_MODE_WRAP, GX2_TEX_XY_FILTER_MODE_POINT);
 }
 
 TextureGX2::~TextureGX2() {}
+
+void TextureGX2::onDestroy(const gl::Context *context)
+{
+    ContextGX2 *contextGX2 = GetImplAs<ContextGX2>(context);
+
+    if (mTexture.surface.image)
+    {
+        contextGX2->getRenderer()->freeMemory(mTexture.surface.image);
+        mTexture.surface.image = nullptr;
+    }
+
+    if (mRenderTarget)
+    {
+        mRenderTarget->destroy();
+        delete mRenderTarget;
+        mRenderTarget = nullptr;
+    }
+}
 
 angle::Result TextureGX2::setImage(const gl::Context *context,
                                    const gl::ImageIndex &index,
@@ -36,9 +53,10 @@ angle::Result TextureGX2::setImage(const gl::Context *context,
                                    gl::Buffer *unpackBuffer,
                                    const uint8_t *pixels)
 {
+    ContextGX2 *contextGX2               = GetImplAs<ContextGX2>(context);
     const gl::InternalFormat &formatInfo = gl::GetInternalFormatInfo(internalFormat, type);
 
-    return setImageImpl(context, index, formatInfo, size, type, unpack, unpackBuffer, pixels);
+    return setImageImpl(contextGX2, index, formatInfo, size, type, unpack, unpackBuffer, pixels);
 }
 
 angle::Result TextureGX2::setSubImage(const gl::Context *context,
@@ -174,7 +192,15 @@ angle::Result TextureGX2::setStorage(const gl::Context *context,
                                      GLenum internalFormat,
                                      const gl::Extents &size)
 {
-    UNIMPLEMENTED();
+    ContextGX2 *contextGX2 = GetImplAs<ContextGX2>(context);
+
+    const gl::InternalFormat &formatInfo = gl::GetSizedInternalFormatInfo(internalFormat);
+    angle::FormatID angleFormatId =
+        angle::Format::InternalFormatToID(formatInfo.sizedInternalFormat);
+    const gx2::SurfaceFormat &gx2Format = gx2::SurfaceFormat::Get(angleFormatId);
+
+    ANGLE_TRY(initializeTexture(contextGX2, size, gx2Format));
+
     return angle::Result::Continue;
 }
 
@@ -240,8 +266,22 @@ angle::Result TextureGX2::getAttachmentRenderTarget(const gl::Context *context,
                                                     GLsizei samples,
                                                     FramebufferAttachmentRenderTarget **rtOut)
 {
-    UNIMPLEMENTED();
-    *rtOut = nullptr;
+    // TODO make sure texture is initialized
+    ContextGX2 *contextGX2 = GetImplAs<ContextGX2>(context);
+
+    // TODO depth
+    ASSERT(binding != GL_DEPTH && binding != GL_STENCIL && binding != GL_DEPTH_STENCIL);
+
+    if (!mRenderTarget)
+    {
+        ColorRenderTargetGX2 *colorRenderTarget =
+            new ColorRenderTargetGX2(contextGX2->getRenderer());
+        colorRenderTarget->initialize(&mTexture);
+
+        mRenderTarget = colorRenderTarget;
+    }
+
+    *rtOut = mRenderTarget;
     return angle::Result::Continue;
 }
 
@@ -292,59 +332,10 @@ angle::Result TextureGX2::initializeContents(const gl::Context *context,
     return angle::Result::Continue;
 }
 
-angle::Result TextureGX2::setImageImpl(const gl::Context *context,
-                                       const gl::ImageIndex &index,
-                                       const gl::InternalFormat &formatInfo,
-                                       const gl::Extents &size,
-                                       GLenum type,
-                                       const gl::PixelUnpackState &unpack,
-                                       gl::Buffer *unpackBuffer,
-                                       const uint8_t *pixels)
+angle::Result TextureGX2::initializeTexture(ContextGX2 *contextGX2,
+                                            const gl::Extents &size,
+                                            const gx2::SurfaceFormat &gx2Format)
 {
-    // TODO clean this up
-
-    ContextGX2 *contextGX2 = GetImplAs<ContextGX2>(context);
-
-    // TODO support other dims
-    if (index.getType() != gl::TextureType::_2D)
-    {
-        UNIMPLEMENTED();
-        return angle::Result::Stop;
-    }
-
-    // Check if pixels need to be unpacked
-    // TODO allow for using this buffer as the underlying texture
-    if (unpackBuffer)
-    {
-        BufferGX2 *bufferGX2 = GetImplAs<BufferGX2>(unpackBuffer);
-
-        ptrdiff_t offset = reinterpret_cast<ptrdiff_t>(pixels);
-        pixels           = bufferGX2->getDataPtr() + offset;
-    }
-
-    if (!pixels)
-    {
-        // TODO still allocate underlying texture?
-        return angle::Result::Continue;
-    }
-
-    // TODO mip maps
-    if (index.getLevelIndex() != 0)
-    {
-        return angle::Result::Continue;
-    }
-
-    angle::FormatID angleFormatId =
-        angle::Format::InternalFormatToID(formatInfo.sizedInternalFormat);
-    const gx2::SurfaceFormat &gx2Format = gx2::SurfaceFormat::Get(angleFormatId);
-    const angle::Format &intendedFormat = angle::Format::Get(gx2Format.getIntendedFormatID());
-    const angle::Format &actualFormat   = angle::Format::Get(gx2Format.getActualFormatID());
-
-    // TODO we can remove this eventually
-    if (gx2Format.getActualFormatID() == angle::FormatID::NONE)
-    {
-        return angle::Result::Stop;
-    }
 
     mTexture.surface.use       = GX2_SURFACE_USE_TEXTURE;
     mTexture.surface.dim       = GX2_SURFACE_DIM_TEXTURE_2D;
@@ -368,6 +359,56 @@ angle::Result TextureGX2::setImageImpl(const gl::Context *context,
     if (!mTexture.surface.image)
     {
         return angle::Result::Stop;
+    }
+
+    return angle::Result::Continue;
+}
+
+angle::Result TextureGX2::setImageImpl(ContextGX2 *contextGX2,
+                                       const gl::ImageIndex &index,
+                                       const gl::InternalFormat &formatInfo,
+                                       const gl::Extents &size,
+                                       GLenum type,
+                                       const gl::PixelUnpackState &unpack,
+                                       gl::Buffer *unpackBuffer,
+                                       const uint8_t *pixels)
+{
+    // TODO clean this up, handle respecifying texture
+
+    // TODO support other dims
+    if (index.getType() != gl::TextureType::_2D)
+    {
+        UNIMPLEMENTED();
+        return angle::Result::Stop;
+    }
+
+    // Check if pixels need to be unpacked
+    // TODO allow for using this buffer as the underlying texture
+    if (unpackBuffer)
+    {
+        BufferGX2 *bufferGX2 = GetImplAs<BufferGX2>(unpackBuffer);
+
+        ptrdiff_t offset = reinterpret_cast<ptrdiff_t>(pixels);
+        pixels           = bufferGX2->getDataPtr() + offset;
+    }
+
+    // TODO mip maps
+    if (index.getLevelIndex() != 0)
+    {
+        return angle::Result::Continue;
+    }
+
+    angle::FormatID angleFormatId =
+        angle::Format::InternalFormatToID(formatInfo.sizedInternalFormat);
+    const gx2::SurfaceFormat &gx2Format = gx2::SurfaceFormat::Get(angleFormatId);
+    const angle::Format &intendedFormat = angle::Format::Get(gx2Format.getIntendedFormatID());
+    const angle::Format &actualFormat   = angle::Format::Get(gx2Format.getActualFormatID());
+
+    ANGLE_TRY(initializeTexture(contextGX2, size, gx2Format));
+
+    if (!pixels)
+    {
+        return angle::Result::Continue;
     }
 
     // Get source and depth pitch

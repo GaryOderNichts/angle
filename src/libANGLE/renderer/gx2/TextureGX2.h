@@ -3,6 +3,10 @@
 
 #include "libANGLE/renderer/TextureImpl.h"
 
+#include "libANGLE/renderer/gx2/ContextGX2.h"
+#include "libANGLE/renderer/gx2/RenderTargetGX2.h"
+#include "libANGLE/renderer/gx2/gx2_format_utils.h"
+
 #include <gx2/sampler.h>
 #include <gx2/texture.h>
 
@@ -14,6 +18,7 @@ class TextureGX2 : public TextureImpl
   public:
     TextureGX2(const gl::TextureState &state);
     ~TextureGX2() override;
+    void onDestroy(const gl::Context *context) override;
 
     angle::Result setImage(const gl::Context *context,
                            const gl::ImageIndex &index,
@@ -167,7 +172,11 @@ class TextureGX2 : public TextureImpl
     GX2Sampler *getSampler() { return &mSampler; }
 
   private:
-    angle::Result setImageImpl(const gl::Context *context,
+    angle::Result initializeTexture(ContextGX2 *contextGX2,
+                                    const gl::Extents &size,
+                                    const gx2::SurfaceFormat &gx2Format);
+
+    angle::Result setImageImpl(ContextGX2 *contextGX2,
                                const gl::ImageIndex &index,
                                const gl::InternalFormat &formatInfo,
                                const gl::Extents &size,
@@ -178,6 +187,8 @@ class TextureGX2 : public TextureImpl
 
     GX2Texture mTexture;
     GX2Sampler mSampler;
+
+    RenderTargetGX2 *mRenderTarget;
 };
 
 }  // namespace rx

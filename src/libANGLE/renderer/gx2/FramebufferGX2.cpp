@@ -199,6 +199,7 @@ angle::Result FramebufferGX2::readPixels(const gl::Context *context,
     // Perform the copy
     GX2CopySurface(&cb->surface, 0, 0, &stagingSurface, 0, 0);
     // Make sure the GPU is done
+    GX2Invalidate(GX2_INVALIDATE_MODE_COLOR_BUFFER, stagingSurface.image, stagingSurface.imageSize);
     GX2DrawDone();
     // Restore context
     contextGX2->applyContextState();
