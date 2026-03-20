@@ -1,19 +1,39 @@
 #include "libANGLE/renderer/gx2/RenderTargetGX2.h"
 
-#include <malloc.h>  // for memalign
+#include "libANGLE/renderer/gx2/RendererGX2.h"
 
 #include <gx2/mem.h>
+#include <malloc.h>  // for memalign
 
 namespace rx
 {
 
-RenderTargetGX2::RenderTargetGX2() {}
+RenderTargetGX2::RenderTargetGX2(RendererGX2 *renderer) : mRenderer(renderer) {}
 
 RenderTargetGX2::~RenderTargetGX2() {}
 
-ColorRenderTargetGX2::ColorRenderTargetGX2() : mColorBuffer() {}
+ColorRenderTargetGX2::ColorRenderTargetGX2(RendererGX2 *renderer)
+    : RenderTargetGX2(renderer), mColorBuffer(), mOwnsSurface()
+{}
 
 ColorRenderTargetGX2::~ColorRenderTargetGX2() {}
+
+bool ColorRenderTargetGX2::initialize(GX2Texture *texture)
+{
+    // TODO check if texture is actually renderable
+
+    mColorBuffer.surface       = texture->surface;
+    mColorBuffer.surface.use   = GX2_SURFACE_USE_TEXTURE_COLOR_BUFFER_TV;
+    mColorBuffer.viewNumSlices = 1;
+    GX2CalcSurfaceSizeAndAlignment(&mColorBuffer.surface);
+    GX2InitColorBufferRegs(&mColorBuffer);
+
+    ASSERT(mColorBuffer.surface.alignment == texture->surface.alignment);
+    ASSERT(mColorBuffer.surface.imageSize == texture->surface.imageSize);
+
+    mOwnsSurface = false;
+    return true;
+}
 
 bool ColorRenderTargetGX2::initialize(GLsizei width,
                                       GLsizei height,
@@ -34,8 +54,10 @@ bool ColorRenderTargetGX2::initialize(GLsizei width,
     GX2CalcSurfaceSizeAndAlignment(&mColorBuffer.surface);
     GX2InitColorBufferRegs(&mColorBuffer);
 
+    ASSERT(mColorBuffer.surface.alignment != 0 && mColorBuffer.surface.imageSize != 0);
+
     mColorBuffer.surface.image =
-        memalign(mColorBuffer.surface.alignment, mColorBuffer.surface.imageSize);
+        mRenderer->allocateMemory(mColorBuffer.surface.alignment, mColorBuffer.surface.imageSize);
     if (!mColorBuffer.surface.image)
     {
         return false;
@@ -44,12 +66,22 @@ bool ColorRenderTargetGX2::initialize(GLsizei width,
     GX2Invalidate(GX2_INVALIDATE_MODE_CPU, mColorBuffer.surface.image,
                   mColorBuffer.surface.imageSize);
 
+    mOwnsSurface = true;
     return true;
 }
 
 void ColorRenderTargetGX2::destroy()
 {
-    free(mColorBuffer.surface.image);
+    if (!mOwnsSurface)
+    {
+        return;
+    }
+
+    // TODO is this necessary?
+    // GX2Invalidate(GX2_INVALIDATE_MODE_COLOR_BUFFER, mColorBuffer.surface.image,
+    // mColorBuffer.surface.imageSize);
+
+    mRenderer->freeMemory(mColorBuffer.surface.image);
     mColorBuffer.surface.image = nullptr;
 }
 
@@ -63,7 +95,9 @@ GLsizei ColorRenderTargetGX2::getWidth() const
     return static_cast<GLsizei>(mColorBuffer.surface.width);
 }
 
-DepthStencilRenderTargetGX2::DepthStencilRenderTargetGX2() : mDepthBuffer() {}
+DepthStencilRenderTargetGX2::DepthStencilRenderTargetGX2(RendererGX2 *renderer)
+    : RenderTargetGX2(renderer), mDepthBuffer(), mOwnsSurface()
+{}
 
 DepthStencilRenderTargetGX2::~DepthStencilRenderTargetGX2() {}
 
@@ -96,8 +130,10 @@ bool DepthStencilRenderTargetGX2::initialize(GLsizei width,
     GX2CalcSurfaceSizeAndAlignment(&mDepthBuffer.surface);
     GX2InitDepthBufferRegs(&mDepthBuffer);
 
+    ASSERT(mDepthBuffer.surface.alignment != 0 && mDepthBuffer.surface.imageSize != 0);
+
     mDepthBuffer.surface.image =
-        memalign(mDepthBuffer.surface.alignment, mDepthBuffer.surface.imageSize);
+        mRenderer->allocateMemory(mDepthBuffer.surface.alignment, mDepthBuffer.surface.imageSize);
     if (!mDepthBuffer.surface.image)
     {
         return false;
@@ -106,12 +142,22 @@ bool DepthStencilRenderTargetGX2::initialize(GLsizei width,
     GX2Invalidate(GX2_INVALIDATE_MODE_CPU, mDepthBuffer.surface.image,
                   mDepthBuffer.surface.imageSize);
 
+    mOwnsSurface = true;
     return true;
 }
 
 void DepthStencilRenderTargetGX2::destroy()
 {
-    free(mDepthBuffer.surface.image);
+    if (!mOwnsSurface)
+    {
+        return;
+    }
+
+    // TODO is this necessary?
+    // GX2Invalidate(GX2_INVALIDATE_DEPTH_BUFFER, mColorBuffer.surface.image,
+    // mColorBuffer.surface.imageSize);
+
+    mRenderer->freeMemory(mDepthBuffer.surface.image);
     mDepthBuffer.surface.image = nullptr;
 }
 

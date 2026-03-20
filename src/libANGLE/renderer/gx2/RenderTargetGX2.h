@@ -9,29 +9,33 @@
 namespace rx
 {
 
+class RendererGX2;
+
 class RenderTargetGX2 : public FramebufferAttachmentRenderTarget
 {
   public:
-    RenderTargetGX2();
+    RenderTargetGX2(RendererGX2 *renderer);
     ~RenderTargetGX2() override;
+
+    virtual void destroy() {}
 
     virtual GLsizei getHeight() const = 0;
     virtual GLsizei getWidth() const  = 0;
 
   protected:
-    GX2Texture *mTexture;
+    RendererGX2 *const mRenderer;
 };
 
 class ColorRenderTargetGX2 : public RenderTargetGX2
 {
   public:
-    ColorRenderTargetGX2();
+    ColorRenderTargetGX2(RendererGX2 *renderer);
     ~ColorRenderTargetGX2() override;
 
-    // void initialize(GX2Texture *texture);
+    bool initialize(GX2Texture *texture);
     bool initialize(GLsizei width, GLsizei height, GX2SurfaceFormat format, GX2AAMode aa);
 
-    void destroy();
+    void destroy() override;
 
     GLsizei getHeight() const override;
     GLsizei getWidth() const override;
@@ -40,18 +44,19 @@ class ColorRenderTargetGX2 : public RenderTargetGX2
 
   private:
     GX2ColorBuffer mColorBuffer;
+    bool mOwnsSurface;
 };
 
 class DepthStencilRenderTargetGX2 : public RenderTargetGX2
 {
   public:
-    DepthStencilRenderTargetGX2();
+    DepthStencilRenderTargetGX2(RendererGX2 *renderer);
     ~DepthStencilRenderTargetGX2() override;
 
-    // void initialize(GX2Texture *texture);
+    // bool initialize(GX2Texture *texture);
     bool initialize(GLsizei width, GLsizei height, GX2SurfaceFormat format, GX2AAMode aa);
 
-    void destroy();
+    void destroy() override;
 
     GLsizei getHeight() const override;
     GLsizei getWidth() const override;
@@ -60,6 +65,7 @@ class DepthStencilRenderTargetGX2 : public RenderTargetGX2
 
   private:
     GX2DepthBuffer mDepthBuffer;
+    bool mOwnsSurface;
 };
 
 }  // namespace rx

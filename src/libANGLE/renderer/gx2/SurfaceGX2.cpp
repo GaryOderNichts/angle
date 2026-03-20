@@ -27,8 +27,8 @@ SurfaceGX2::SurfaceGX2(const egl::SurfaceState &surfaceState,
       mRenderer(renderer),
       mWidth(surfaceState.attributes.getAsInt(EGL_WIDTH, 0)),
       mHeight(surfaceState.attributes.getAsInt(EGL_HEIGHT, 0)),
-      mColorRenderTarget(),
-      mDepthStencilRenderTarget()
+      mColorRenderTarget(renderer),
+      mDepthStencilRenderTarget(renderer)
 {
     ASSERT(mRenderer != nullptr);
 

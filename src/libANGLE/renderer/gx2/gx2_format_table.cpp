@@ -232,6 +232,27 @@ const SurfaceFormat &SurfaceFormat::Get(angle::FormatID formatID)
                 GX2_SEL_MASK(GX2_SQ_SEL_R, GX2_SQ_SEL_G, GX2_SQ_SEL_B, GX2_SQ_SEL_A), true, false);
             return format;
         }
+        case angle::FormatID::R8G8B8A8_UNORM_SRGB:
+        {
+            static const SurfaceFormat format(
+                angle::FormatID::R8G8B8A8_UNORM_SRGB, GX2_SURFACE_FORMAT_SRGB_R8_G8_B8_A8,
+                GX2_SEL_MASK(GX2_SQ_SEL_R, GX2_SQ_SEL_G, GX2_SQ_SEL_B, GX2_SQ_SEL_A), true, false);
+            return format;
+        }
+        case angle::FormatID::R8G8B8A8_UINT:
+        {
+            static const SurfaceFormat format(
+                angle::FormatID::R8G8B8A8_UINT, GX2_SURFACE_FORMAT_UINT_R8_G8_B8_A8,
+                GX2_SEL_MASK(GX2_SQ_SEL_R, GX2_SQ_SEL_G, GX2_SQ_SEL_B, GX2_SQ_SEL_A), true, false);
+            return format;
+        }
+        case angle::FormatID::R8G8B8A8_SINT:
+        {
+            static const SurfaceFormat format(
+                angle::FormatID::R8G8B8A8_SINT, GX2_SURFACE_FORMAT_SINT_R8_G8_B8_A8,
+                GX2_SEL_MASK(GX2_SQ_SEL_R, GX2_SQ_SEL_G, GX2_SQ_SEL_B, GX2_SQ_SEL_A), true, false);
+            return format;
+        }
         case angle::FormatID::R8G8B8_UNORM:
         {
             static const SurfaceFormat format(
@@ -275,6 +296,32 @@ const SurfaceFormat &SurfaceFormat::Get(angle::FormatID formatID)
                 angle::FormatID::D16_UNORM, angle::FormatID::R32_FLOAT,
                 GX2_SURFACE_FORMAT_FLOAT_R32,
                 GX2_SEL_MASK(GX2_SQ_SEL_R, GX2_SQ_SEL_R, GX2_SQ_SEL_R, GX2_SQ_SEL_R), true, true);
+            return format;
+        }
+
+        case angle::FormatID::D24_UNORM_S8_UINT:
+        {
+            // TODO verify
+            static const SurfaceFormat format(
+                angle::FormatID::D24_UNORM_S8_UINT, GX2_SURFACE_FORMAT_UNORM_R24_X8,
+                GX2_SEL_MASK(GX2_SQ_SEL_R, GX2_SQ_SEL_R, GX2_SQ_SEL_R, GX2_SQ_SEL_R), false, true);
+            return format;
+        }
+        case angle::FormatID::D24_UNORM_X8_UINT:
+        {
+            // TODO verify
+            static const SurfaceFormat format(
+                angle::FormatID::D24_UNORM_X8_UINT, GX2_SURFACE_FORMAT_UNORM_R24_X8,
+                GX2_SEL_MASK(GX2_SQ_SEL_R, GX2_SQ_SEL_R, GX2_SQ_SEL_R, GX2_SQ_SEL_R), false, true);
+            return format;
+        }
+
+        case angle::FormatID::S8_UINT:
+        {
+            // TODO verify
+            static const SurfaceFormat format(
+                angle::FormatID::S8_UINT, GX2_SURFACE_FORMAT_FLOAT_X8_X24,
+                GX2_SEL_MASK(GX2_SQ_SEL_R, GX2_SQ_SEL_R, GX2_SQ_SEL_R, GX2_SQ_SEL_R), false, true);
             return format;
         }
 

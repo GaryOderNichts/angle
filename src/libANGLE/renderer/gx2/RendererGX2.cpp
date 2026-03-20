@@ -20,7 +20,27 @@ constexpr uint32_t kRingBufferSize = 0x100000u * 10;  // 10 MiB
 namespace rx
 {
 
-RendererGX2::RendererGX2() : mCurrFrameTimestamp(0), mLastFrameTimestamp(0), mActiveFreeQueue(false)
+RendererGX2::RendererGX2()
+    : mDisplay(),
+      mCommandBufferPool(),
+      mTVRenderMode(),
+      mTVWidth(),
+      mTVHeight(),
+      mTVScanBufferSize(),
+      mTVScanBuffer(),
+      mDrcRenderMode(),
+      mDrcWidth(),
+      mDrcHeight(),
+      mDrcScanBufferSize(),
+      mDrcScanBuffer(),
+      mInForeground(false),
+      mAnnotator(),
+      mRingBufferData(),
+      mRingBufferOffset(0),
+      mActiveFreeQueue(false),
+      mFreeQueues(),
+      mCurrFrameTimestamp(0),
+      mLastFrameTimestamp(0)
 {}
 
 RendererGX2::~RendererGX2() {}
@@ -94,6 +114,7 @@ egl::Error RendererGX2::initialize(egl::Display *display)
                    &mDrcScanBufferSize, &unk);
 
     // Register callbacks to handle foreground only allocations
+    // TODO these cannot be unregistered, causing issues when re-initializing
     ProcUIRegisterCallback(PROCUI_CALLBACK_ACQUIRE, foregroundAcquiredCallback, this, 100);
     ProcUIRegisterCallback(PROCUI_CALLBACK_RELEASE, foregroundReleasedCallback, this, 100);
 
@@ -102,6 +123,9 @@ egl::Error RendererGX2::initialize(egl::Display *display)
     {
         return egl::Error(EGL_NOT_INITIALIZED, 0, "Foreground allocations failed");
     }
+
+    GX2SetTVScale(mTVWidth, mTVHeight);
+    GX2SetDRCScale(mDrcWidth, mDrcHeight);
 
     // Initialize ringbuffer
     mRingBufferOffset = 0;
@@ -129,6 +153,9 @@ void RendererGX2::terminate()
     free(mCommandBufferPool);
     mCommandBufferPool = nullptr;
 
+    free(mRingBufferData);
+    mRingBufferData = nullptr;
+
     // GLSL_Shutdown();
 
     sRendererExists = false;
@@ -141,10 +168,10 @@ void RendererGX2::setGlobalDebugAnnotator()
 
 void *RendererGX2::allocateFromRingBuffer(size_t alignment, size_t size)
 {
-    size_t base = reinterpret_cast<size_t>(mRingBufferData) + mRingBufferOffset;
-    void *ptr   = reinterpret_cast<void *>(roundUpPow2(base, alignment));
+    uintptr_t base = reinterpret_cast<uintptr_t>(mRingBufferData) + mRingBufferOffset;
+    void *ptr      = reinterpret_cast<void *>(roundUpPow2(base, alignment));
 
-    mRingBufferOffset += (reinterpret_cast<size_t>(ptr) - base) + size;
+    mRingBufferOffset += (reinterpret_cast<uintptr_t>(ptr) - base) + size;
     if (mRingBufferOffset > kRingBufferSize)
     {
         // TODO we currently just wrap around the ring buffer without checking if the GPU
