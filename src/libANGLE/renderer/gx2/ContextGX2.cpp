@@ -660,7 +660,7 @@ FramebufferImpl *ContextGX2::createFramebuffer(const gl::FramebufferState &data)
 
 TextureImpl *ContextGX2::createTexture(const gl::TextureState &state)
 {
-    return new TextureGX2(state);
+    return new TextureGX2(state, mRenderer);
 }
 
 RenderbufferImpl *ContextGX2::createRenderbuffer(const gl::RenderbufferState &state)

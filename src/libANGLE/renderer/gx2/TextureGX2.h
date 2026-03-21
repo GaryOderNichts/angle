@@ -6,9 +6,9 @@
 #include "libANGLE/renderer/gx2/ContextGX2.h"
 #include "libANGLE/renderer/gx2/RenderTargetGX2.h"
 #include "libANGLE/renderer/gx2/gx2_format_utils.h"
+#include "libANGLE/renderer/gx2/gx2_texture_utils.h"
 
 #include <gx2/sampler.h>
-#include <gx2/texture.h>
 
 namespace rx
 {
@@ -16,7 +16,7 @@ namespace rx
 class TextureGX2 : public TextureImpl
 {
   public:
-    TextureGX2(const gl::TextureState &state);
+    TextureGX2(const gl::TextureState &state, RendererGX2 *renderer);
     ~TextureGX2() override;
     void onDestroy(const gl::Context *context) override;
 
@@ -168,13 +168,14 @@ class TextureGX2 : public TextureImpl
                                      GLenum binding,
                                      const gl::ImageIndex &imageIndex) override;
 
-    GX2Texture *getTexture() { return &mTexture; }
+    GX2Texture *getTexture() { return mTexture.getTexture(); }
     GX2Sampler *getSampler() { return &mSampler; }
 
   private:
-    angle::Result initializeTexture(ContextGX2 *contextGX2,
-                                    const gl::Extents &size,
-                                    const gx2::SurfaceFormat &gx2Format);
+    angle::Result redefineImage(ContextGX2 *contextGX2,
+                                const gl::ImageIndex &index,
+                                const gx2::SurfaceFormat &format,
+                                const gl::Extents &size);
 
     angle::Result setImageImpl(ContextGX2 *contextGX2,
                                const gl::ImageIndex &index,
@@ -185,7 +186,16 @@ class TextureGX2 : public TextureImpl
                                gl::Buffer *unpackBuffer,
                                const uint8_t *pixels);
 
-    GX2Texture mTexture;
+    angle::Result setSubImageImpl(ContextGX2 *contextGX2,
+                                  const gl::ImageIndex &index,
+                                  const gl::Box &area,
+                                  const gl::InternalFormat &formatInfo,
+                                  GLenum type,
+                                  const gl::PixelUnpackState &unpack,
+                                  gl::Buffer *unpackBuffer,
+                                  const uint8_t *pixels);
+
+    gx2::TextureHelper mTexture;
     GX2Sampler mSampler;
 
     RenderTargetGX2 *mRenderTarget;
