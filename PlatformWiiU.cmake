@@ -42,6 +42,8 @@ set(gx2_backend_sources
     "src/libANGLE/renderer/gx2/gx2_format_table.cpp"
     "src/libANGLE/renderer/gx2/gx2_format_utils.cpp"
     "src/libANGLE/renderer/gx2/gx2_format_utils.h"
+    "src/libANGLE/renderer/gx2/gx2_texture_utils.cpp"
+    "src/libANGLE/renderer/gx2/gx2_texture_utils.h"
 )
 
 set(angle_wiiu_sources

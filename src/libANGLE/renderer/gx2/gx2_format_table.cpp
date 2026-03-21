@@ -263,9 +263,15 @@ const SurfaceFormat &SurfaceFormat::Get(angle::FormatID formatID)
         }
         case angle::FormatID::R5G6B5_UNORM:
         {
+            // TODO fix endianness
+            // static const SurfaceFormat format(
+            //     angle::FormatID::R5G6B5_UNORM, GX2_SURFACE_FORMAT_UNORM_R5_G6_B5,
+            //     GX2_SEL_MASK(GX2_SQ_SEL_B, GX2_SQ_SEL_G, GX2_SQ_SEL_R, GX2_SQ_SEL_1), true,
+            //     false);
+
             static const SurfaceFormat format(
-                angle::FormatID::R5G6B5_UNORM, GX2_SURFACE_FORMAT_UNORM_R5_G6_B5,
-                GX2_SEL_MASK(GX2_SQ_SEL_R, GX2_SQ_SEL_G, GX2_SQ_SEL_B, GX2_SQ_SEL_1), true, false);
+                formatID, angle::FormatID::R8G8B8A8_UNORM, GX2_SURFACE_FORMAT_UNORM_R8_G8_B8_A8,
+                GX2_SEL_MASK(GX2_SQ_SEL_R, GX2_SQ_SEL_G, GX2_SQ_SEL_B, GX2_SQ_SEL_1), false, false);
             return format;
         }
         case angle::FormatID::R5G5B5A1_UNORM:
