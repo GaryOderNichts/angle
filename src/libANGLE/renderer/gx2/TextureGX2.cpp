@@ -367,9 +367,14 @@ angle::Result TextureGX2::redefineImage(ContextGX2 *contextGX2,
         }
     }
 
-    if (!mTexture.initialize(gl::TextureType::_2D /*TODO*/, size, format, 0 /*TODO*/, 1 /*TODO*/))
+    // (Re-)initialize texture to desired format
+    if (!mTexture.valid())
     {
-        return angle::Result::Stop;
+        if (!mTexture.initialize(gl::TextureType::_2D /*TODO*/, size, format, 0 /*TODO*/,
+                                 1 /*TODO*/))
+        {
+            return angle::Result::Stop;
+        }
     }
 
     return angle::Result::Continue;

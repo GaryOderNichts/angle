@@ -562,6 +562,9 @@ angle::Result ContextGX2::syncState(const gl::Context *context,
             case gl::state::DIRTY_BIT_CLEAR_STENCIL:
                 // Stencil is read from state upon framebuffer clear
                 break;
+            case gl::state::DIRTY_BIT_UNPACK_STATE:
+                // Unpack state is handled with PixelUnpackState during setImage
+                break;
             case gl::state::DIRTY_BIT_PROGRAM_BINDING:
                 static_assert(
                     gl::state::DIRTY_BIT_PROGRAM_EXECUTABLE > gl::state::DIRTY_BIT_PROGRAM_BINDING,
@@ -575,7 +578,7 @@ angle::Result ContextGX2::syncState(const gl::Context *context,
             }
             case gl::state::DIRTY_BIT_TEXTURE_BINDINGS:
             {
-                updateTextureBindings();
+                updateTextureBindings(context);
                 break;
             }
             default:
@@ -935,7 +938,7 @@ void ContextGX2::updateScissor()
     mInternalDirtyBits.set(DIRTY_BIT_GX2_SCISSOR);
 }
 
-void ContextGX2::updateTextureBindings()
+void ContextGX2::updateTextureBindings(const gl::Context *context)
 {
     const gl::ProgramExecutable *executable = mState.getProgramExecutable();
     ASSERT(executable);
@@ -953,13 +956,14 @@ void ContextGX2::updateTextureBindings()
             // nullptr means incomplete texture
             if (texture == nullptr)
             {
-                // TODO this depends on setStorage / setSubImage which is currently not
-                // implemented
-                break;
-                // ANGLE_TRY(mIncompleteTextures.getIncompleteTexture(
-                //     context, textureTypes[textureUnit],
-                //     executable->getSamplerFormatForTextureUnitIndex(textureUnit),
-                //     this, &texture));
+                if (mIncompleteTextures.getIncompleteTexture(
+                        context, textureTypes[textureUnit],
+                        executable->getSamplerFormatForTextureUnitIndex(textureUnit), this,
+                        &texture) != angle::Result::Continue)
+                {
+                    // Hmm this is not great
+                    return;
+                }
             }
 
             TextureGX2 *textureGX2 = GetImplAs<TextureGX2>(texture);

@@ -275,7 +275,7 @@ class ContextGX2 : public ContextImpl, public MultisampleTextureInitializer
     void updateDrawFramebufferBinding(const gl::Context *context);
     void updateViewport();
     void updateScissor();
-    void updateTextureBindings();
+    void updateTextureBindings(const gl::Context *context);
 
     gl::Caps mCaps;
     gl::TextureCapsMap mTextureCaps;

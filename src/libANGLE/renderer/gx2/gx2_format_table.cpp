@@ -151,6 +151,39 @@ const AttribFormat &AttribFormat::Get(angle::FormatID formatID)
             return format;
         }
 
+        case angle::FormatID::R8_USCALED:
+        {
+            static const AttribFormat format(
+                angle::FormatID::R8_USCALED, GX2_ATTRIB_FLAG_SCALED | GX2_ATTRIB_TYPE_8,
+                GX2_SEL_MASK(GX2_SQ_SEL_X, GX2_SQ_SEL_0, GX2_SQ_SEL_0, GX2_SQ_SEL_1),
+                CopyNativeVertexData<GLbyte, 1, 1, 0>);
+            return format;
+        }
+        case angle::FormatID::R8G8_USCALED:
+        {
+            static const AttribFormat format(
+                angle::FormatID::R8G8_USCALED, GX2_ATTRIB_FLAG_SCALED | GX2_ATTRIB_TYPE_8_8,
+                GX2_SEL_MASK(GX2_SQ_SEL_X, GX2_SQ_SEL_Y, GX2_SQ_SEL_0, GX2_SQ_SEL_1),
+                CopyNativeVertexData<GLbyte, 2, 2, 0>);
+            return format;
+        }
+        case angle::FormatID::R8G8B8_USCALED:
+        {
+            static const AttribFormat format(
+                angle::FormatID::R8G8B8_USCALED, GX2_ATTRIB_FLAG_SCALED | GX2_ATTRIB_TYPE_8_8_8_8,
+                GX2_SEL_MASK(GX2_SQ_SEL_X, GX2_SQ_SEL_Y, GX2_SQ_SEL_Z, GX2_SQ_SEL_1),
+                CopyNativeVertexData<GLbyte, 3, 4, 0>);
+            return format;
+        }
+        case angle::FormatID::R8G8B8A8_USCALED:
+        {
+            static const AttribFormat format(
+                angle::FormatID::R8G8B8A8_USCALED, GX2_ATTRIB_FLAG_SCALED | GX2_ATTRIB_TYPE_8_8_8_8,
+                GX2_SEL_MASK(GX2_SQ_SEL_X, GX2_SQ_SEL_Y, GX2_SQ_SEL_Z, GX2_SQ_SEL_W),
+                CopyNativeVertexData<GLbyte, 4, 4, 0>);
+            return format;
+        }
+
             // TODO R8*_SSCALED
             //      Can we use GX2_ATTRIB_FLAG_SIGNED | GX2_ATTRIB_FLAG_SCALED | GX2_ATTRIB_TYPE_8?
 
@@ -204,7 +237,9 @@ const AttribFormat &AttribFormat::Get(angle::FormatID formatID)
             // TODO all other formats
 
         default:
-            UNIMPLEMENTED();
+            WARN() << "\t! Unimplemented attrib format: " << static_cast<int>(formatID);
+            ASSERT(NOASSERT_UNIMPLEMENTED);
+
             // UNREACHABLE();
             static const AttribFormat format(
                 angle::FormatID::NONE, (GX2AttribFormat)0,
@@ -335,7 +370,9 @@ const SurfaceFormat &SurfaceFormat::Get(angle::FormatID formatID)
 
         default:
         {
-            UNIMPLEMENTED();
+            WARN() << "\t! Unimplemented surface format: " << static_cast<int>(formatID);
+            ASSERT(NOASSERT_UNIMPLEMENTED);
+
             // UNREACHABLE();
             // static const SurfaceFormat format(
             //     angle::FormatID::NONE, GX2_SURFACE_FORMAT_INVALID,
