@@ -102,6 +102,9 @@ class ProgramExecutableGX2 : public ProgramExecutableImpl
     template <typename T>
     void setUniformImpl(GLint location, GLsizei count, const T *v, GLenum entryPointType);
 
+    template <typename T>
+    void getUniformImpl(GLint location, T *v, GLenum entryPointType) const;
+
     template <int cols, int rows>
     void setUniformMatrixfv(GLint location,
                             GLsizei count,

@@ -81,6 +81,12 @@ bool IsWebGPU()
     return (rendererString.find("WebGPU") != std::string::npos);
 }
 
+bool IsGX2()
+{
+    std::string rendererString(reinterpret_cast<const char *>(glGetString(GL_RENDERER)));
+    return (rendererString.find("GX2") != std::string::npos);
+}
+
 bool IsDebug()
 {
 #if !defined(NDEBUG)

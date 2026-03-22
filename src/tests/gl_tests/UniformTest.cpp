@@ -13,7 +13,7 @@
 #include "test_utils/angle_test_configs.h"
 #include "test_utils/angle_test_instantiate.h"
 #include "test_utils/gl_raii.h"
-#include "util/gles_loader_autogen.h"
+#include "util/util_gl.h"
 #include "util/shader_utils.h"
 
 #include <array>

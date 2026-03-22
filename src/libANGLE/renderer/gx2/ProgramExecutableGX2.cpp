@@ -205,21 +205,21 @@ void ProgramExecutableGX2::getUniformfv(const gl::Context *context,
                                         GLint location,
                                         GLfloat *params) const
 {
-    UNIMPLEMENTED();
+    getUniformImpl(location, params, GL_FLOAT);
 }
 
 void ProgramExecutableGX2::getUniformiv(const gl::Context *context,
                                         GLint location,
                                         GLint *params) const
 {
-    UNIMPLEMENTED();
+    getUniformImpl(location, params, GL_INT);
 }
 
 void ProgramExecutableGX2::getUniformuiv(const gl::Context *context,
                                          GLint location,
                                          GLuint *params) const
 {
-    UNIMPLEMENTED();
+    getUniformImpl(location, params, GL_UNSIGNED_INT);
 }
 
 void ProgramExecutableGX2::syncShaders(const gl::Context *context) const
@@ -411,7 +411,6 @@ angle::Result ProgramExecutableGX2::initDefaultUniformBlockLayout()
                     }
 
                     // Insert into layout
-                    // TODO is location.index what we want here?
                     mDefaultUniformBlocks[shaderType].uniformVarLayout.emplace(location.index,
                                                                                *foundVar);
                 }
@@ -450,7 +449,8 @@ void ProgramExecutableGX2::setUniformImpl(GLint location,
     {
         DefaultUniformBlock &uniformBlock = mDefaultUniformBlocks[shaderType];
 
-        if (uniformBlock.uniformVarLayout.count(location) == 0)
+        auto it = uniformBlock.uniformVarLayout.find(locationInfo.index);
+        if (it == uniformBlock.uniformVarLayout.end())
         {
             // Layout doesn't contain location, probably unused
             continue;
@@ -462,17 +462,17 @@ void ProgramExecutableGX2::setUniformImpl(GLint location,
             uniformBlock.buffer.waitUsed();
         }
 
-        const GX2UniformVar &uniformVar = uniformBlock.uniformVarLayout.at(location);
+        const GX2UniformVar &uniformVar = it->second;
 
+        // TODO improve this
         uint8_t *dst = uniformBlock.buffer.getDataPtr() + uniformVar.offset;
         int maxIndex = locationInfo.arrayIndex + count;
         for (int writeIndex = locationInfo.arrayIndex, readIndex = 0; writeIndex < maxIndex;
              writeIndex++, readIndex++)
         {
             const GLint componentCount = linkedUniform.getElementComponents();
-            const int arrayOffset =
-                writeIndex * (gx2::GetShaderVarTypeSize(uniformVar.type) / sizeof(uint32_t));
-            uint32_t *writePtr = reinterpret_cast<uint32_t *>(dst + arrayOffset);
+            const int arrayOffset      = writeIndex * gx2::GetShaderVarTypeSize(uniformVar.type);
+            uint32_t *writePtr         = reinterpret_cast<uint32_t *>(dst + arrayOffset);
             const uint32_t *readPtr =
                 reinterpret_cast<const uint32_t *>(v + (readIndex * componentCount));
 
@@ -484,6 +484,51 @@ void ProgramExecutableGX2::setUniformImpl(GLint location,
         }
 
         mDefaultUniformBlocksDirty.set(shaderType);
+    }
+}
+
+template <typename T>
+void ProgramExecutableGX2::getUniformImpl(GLint location, T *v, GLenum entryPointType) const
+{
+    const gl::VariableLocation &locationInfo = mExecutable->getUniformLocations()[location];
+    const gl::LinkedUniform &linkedUniform   = mExecutable->getUniforms()[locationInfo.index];
+
+    const gl::ShaderType shaderType = linkedUniform.getFirstActiveShaderType();
+    ASSERT(shaderType != gl::ShaderType::InvalidEnum);
+
+    const DefaultUniformBlock &uniformBlock = mDefaultUniformBlocks[shaderType];
+    auto it = uniformBlock.uniformVarLayout.find(locationInfo.index);
+    if (it == uniformBlock.uniformVarLayout.end())
+    {
+        // Uh what now? Check next shader type?
+        return;
+    }
+
+    const GX2UniformVar &uniformVar = it->second;
+
+    ASSERT(linkedUniform.getUniformTypeInfo().componentType == entryPointType);
+
+    if (gl::IsMatrixType(linkedUniform.getType()))
+    {
+        // TODO
+        UNIMPLEMENTED();
+    }
+    else
+    {
+        // Do the reverse of set
+        const uint8_t *src = uniformBlock.buffer.getDataPtr() + uniformVar.offset;
+
+        const GLint componentCount = linkedUniform.getElementComponents();
+        const int arrayOffset =
+            locationInfo.arrayIndex * gx2::GetShaderVarTypeSize(uniformVar.type);
+        const uint32_t *readPtr = reinterpret_cast<const uint32_t *>(src + arrayOffset);
+        uint32_t *writePtr      = reinterpret_cast<uint32_t *>(v);
+
+        // We need to byteswap each component
+        for (int i = 0; i < componentCount; i++)
+        {
+            writePtr[i] = angle::base::ByteSwap(readPtr[i]);
+        }
     }
 }
 
