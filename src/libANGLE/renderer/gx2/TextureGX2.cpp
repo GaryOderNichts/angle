@@ -351,6 +351,12 @@ angle::Result TextureGX2::redefineImage(ContextGX2 *contextGX2,
 {
     // TODO handle ghosting texture when still in use by GPU
 
+    // TODO mipmaps, skip for now
+    if (index.getLevelIndex() != 0)
+    {
+        return angle::Result::Continue;
+    }
+
     // Do we already have a valid texture?
     if (mTexture.valid())
     {
@@ -412,6 +418,12 @@ angle::Result TextureGX2::setSubImageImpl(ContextGX2 *contextGX2,
     ASSERT(area.depth == 1);
     ASSERT(index.getType() == gl::TextureType::_2D);
     // ASSERT(index.getLevelIndex() == 0);
+
+    // TODO mipmaps, skip for now
+    if (index.getLevelIndex() != 0)
+    {
+        return angle::Result::Continue;
+    }
 
     // Check if pixels need to be unpacked
     // TODO allow for using this buffer as the underlying texture?
