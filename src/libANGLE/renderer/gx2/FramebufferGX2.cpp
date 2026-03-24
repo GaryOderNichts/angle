@@ -94,6 +94,7 @@ angle::Result FramebufferGX2::clear(const gl::Context *context, GLbitfield mask)
             clearFlags |= GX2_CLEAR_FLAGS_STENCIL;
         }
 
+        // TODO read depthClear and stencilClear from context
         GX2ClearDepthStencilEx(depthBuffer, depthBuffer->depthClear, depthBuffer->stencilClear,
                                static_cast<GX2ClearFlags>(clearFlags));
     }
