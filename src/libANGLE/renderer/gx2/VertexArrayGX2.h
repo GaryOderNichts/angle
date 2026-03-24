@@ -29,6 +29,8 @@ class VertexArrayGX2 : public VertexArrayImpl
                                    gl::DrawElementsType indexTypeOrInvalid,
                                    const void *indices);
 
+    void notifyDraw(const gl::Context *context);
+
     const gl::AttribArray<GX2AttribStream> &getAttribStreams() const { return mAttribStreams; }
 
   private:

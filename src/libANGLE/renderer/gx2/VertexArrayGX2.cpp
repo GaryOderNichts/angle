@@ -148,8 +148,6 @@ angle::Result VertexArrayGX2::syncStateForDraw(const gl::Context *context,
 
         BufferGX2 *bufferGX2 = GetImplAs<BufferGX2>(buffer);
 
-        bufferGX2->onUsed(context);
-
         // TODO we probably don't want to set the same buffers again if attribs use the same binding
         //      (or maybe this is fine?)
         GX2SetAttribBuffer(attrib.bindingIndex, buffer->getSize(), binding.getStride(),
@@ -214,6 +212,22 @@ angle::Result VertexArrayGX2::syncStateForDraw(const gl::Context *context,
     }
 
     return angle::Result::Continue;
+}
+
+void VertexArrayGX2::notifyDraw(const gl::Context *context)
+{
+    for (size_t attribIndex : mState.getEnabledAttributesMask())
+    {
+        const gl::VertexAttribute &attrib = mState.getVertexAttribute(attribIndex);
+        gl::Buffer *buffer                = getVertexArrayBuffer(attrib.bindingIndex);
+        if (!buffer)
+        {
+            continue;
+        }
+
+        BufferGX2 *bufferGX2 = GetImplAs<BufferGX2>(buffer);
+        bufferGX2->onUsed(context);
+    }
 }
 
 angle::Result VertexArrayGX2::syncDirtyAttrib(const gl::Context *context,

@@ -314,17 +314,24 @@ void ProgramExecutableGX2::syncUniformBlocks(const gl::Context *context)
 {
     DefaultUniformBlock &vblk = mDefaultUniformBlocks[gl::ShaderType::Vertex];
 
-    vblk.buffer.markUsed();
     vblk.buffer.invalidate(GX2_INVALIDATE_MODE_CPU | GX2_INVALIDATE_MODE_UNIFORM_BLOCK);
     GX2SetVertexUniformBlock(kDefaultUniformBlockLocation, vblk.buffer.getDataSize(),
                              vblk.buffer.getDataPtr());
 
     DefaultUniformBlock &fblk = mDefaultUniformBlocks[gl::ShaderType::Fragment];
 
-    fblk.buffer.markUsed();
     fblk.buffer.invalidate(GX2_INVALIDATE_MODE_CPU | GX2_INVALIDATE_MODE_UNIFORM_BLOCK);
     GX2SetPixelUniformBlock(kDefaultUniformBlockLocation, fblk.buffer.getDataSize(),
                             fblk.buffer.getDataPtr());
+}
+
+void ProgramExecutableGX2::notifyDraw(const gl::Context *context)
+{
+    DefaultUniformBlock &vblk = mDefaultUniformBlocks[gl::ShaderType::Vertex];
+    DefaultUniformBlock &fblk = mDefaultUniformBlocks[gl::ShaderType::Fragment];
+
+    vblk.buffer.markUsed();
+    fblk.buffer.markUsed();
 }
 
 size_t ProgramExecutableGX2::getDefaultUniformBlockSize(gl::ShaderType shaderType) const
@@ -620,7 +627,8 @@ void ProgramExecutableGX2::setUniformMatrixfv(GLint location,
     {
         DefaultUniformBlock &uniformBlock = mDefaultUniformBlocks[shaderType];
 
-        if (uniformBlock.uniformVarLayout.count(location) == 0)
+        auto it = uniformBlock.uniformVarLayout.find(locationInfo.index);
+        if (it == uniformBlock.uniformVarLayout.end())
         {
             // Layout doesn't contain location, probably unused
             continue;
@@ -632,7 +640,7 @@ void ProgramExecutableGX2::setUniformMatrixfv(GLint location,
             uniformBlock.buffer.waitUsed();
         }
 
-        const GX2UniformVar &uniformVar = uniformBlock.uniformVarLayout.at(location);
+        const GX2UniformVar &uniformVar = it->second;
 
         const bool isSrcColumnMajor = !transpose;
         // GLSL expects matrix uniforms to be column-major, and each column is padded to 4 rows.

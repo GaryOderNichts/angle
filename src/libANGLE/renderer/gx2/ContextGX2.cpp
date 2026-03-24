@@ -217,6 +217,8 @@ angle::Result ContextGX2::drawElements(const gl::Context *context,
         // might mess with alignment?
         size_t offset = reinterpret_cast<size_t>(indices);
 
+        elementArrayBufferGX2->onUsed(context);
+
         GX2DrawIndexedEx(gl_gx2::GetPrimitiveMode(mode), count, gl_gx2::GetIndexType(type),
                          elementArrayBufferGX2->getDataPtr() + offset, 0, 1);
     }
@@ -295,6 +297,7 @@ angle::Result ContextGX2::drawRangeElementsBaseVertex(const gl::Context *context
                                                       const void *indices,
                                                       GLint baseVertex)
 {
+    // TODO
     UNIMPLEMENTED();
     return angle::Result::Continue;
 }
@@ -456,6 +459,12 @@ angle::Result ContextGX2::syncState(const gl::Context *context,
             case gl::state::DIRTY_BIT_DRAW_FRAMEBUFFER_BINDING:
             {
                 updateDrawFramebufferBinding(context);
+                break;
+            }
+            case gl::state::DIRTY_BIT_READ_FRAMEBUFFER_BINDING:
+            {
+                // TODO
+                UNIMPLEMENTED();
                 break;
             }
             case gl::state::DIRTY_BIT_SCISSOR_TEST_ENABLED:
@@ -896,6 +905,10 @@ angle::Result ContextGX2::setupDraw(const gl::Context *context,
 
     ANGLE_TRY(vaoGX2->syncStateForDraw(context, firstVertex, vertexOrIndexCount, instanceCount,
                                        indexTypeOrInvalid, indices));
+
+    programExecutableGX2->notifyDraw(context);
+
+    vaoGX2->notifyDraw(context);
 
     return angle::Result::Continue;
 }

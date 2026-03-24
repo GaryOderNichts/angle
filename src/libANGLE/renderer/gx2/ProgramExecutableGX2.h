@@ -86,6 +86,7 @@ class ProgramExecutableGX2 : public ProgramExecutableImpl
     void syncShaders(const gl::Context *context) const;
 
     void syncUniformBlocks(const gl::Context *context);
+    void notifyDraw(const gl::Context *context);
 
   private:
     friend class ProgramGX2;
