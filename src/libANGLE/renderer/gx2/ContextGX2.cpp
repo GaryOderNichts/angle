@@ -14,6 +14,7 @@
 #include "libANGLE/renderer/gx2/TextureGX2.h"
 #include "libANGLE/renderer/gx2/TransformFeedbackGX2.h"
 #include "libANGLE/renderer/gx2/VertexArrayGX2.h"
+#include "libANGLE/renderer/gx2/gx2_common.h"
 #include "libANGLE/renderer/gx2/gx2_utils.h"
 
 #include <malloc.h>  // for memalign
@@ -61,6 +62,8 @@ ContextGX2::ContextGX2(const gl::State &state, gl::ErrorSet *errorSet, RendererG
       mAlphaCombine(),
       mBlendColor(),
       mIncompleteTextures(),
+      mDirtyDefaultAttribsMask(),
+      mDefaultAttribsBuffer(),
       mContextState()
 {
     // TODO these are just copied from the null backend and should be checked and adjusted
@@ -132,6 +135,12 @@ ContextGX2::~ContextGX2() {}
 
 void ContextGX2::onDestroy(const gl::Context *context)
 {
+    if (mDefaultAttribsBuffer)
+    {
+        free(mDefaultAttribsBuffer);
+        mDefaultAttribsBuffer = nullptr;
+    }
+
     free(mContextState);
     mContextState = nullptr;
 }
@@ -142,6 +151,7 @@ angle::Result ContextGX2::initialize(const angle::ImageLoadContext &imageLoadCon
         memalign(GX2_CONTEXT_STATE_ALIGNMENT, sizeof(GX2ContextState)));
     ASSERT(mContextState != nullptr);
 
+    // TODO check impact of profiling enabled
     GX2SetupContextStateEx(mContextState, TRUE);
 
     return angle::Result::Continue;
@@ -565,6 +575,12 @@ angle::Result ContextGX2::syncState(const gl::Context *context,
             case gl::state::DIRTY_BIT_UNPACK_STATE:
                 // Unpack state is handled with PixelUnpackState during setImage
                 break;
+            case gl::state::DIRTY_BIT_VERTEX_ARRAY_BINDING:
+            {
+                // Need to reset default attributes if vertex array bindings change
+                invalidateDefaultAttribs(context->getActiveDefaultAttribsMask());
+                break;
+            }
             case gl::state::DIRTY_BIT_PROGRAM_BINDING:
                 static_assert(
                     gl::state::DIRTY_BIT_PROGRAM_EXECUTABLE > gl::state::DIRTY_BIT_PROGRAM_BINDING,
@@ -579,6 +595,11 @@ angle::Result ContextGX2::syncState(const gl::Context *context,
             case gl::state::DIRTY_BIT_TEXTURE_BINDINGS:
             {
                 updateTextureBindings(context);
+                break;
+            }
+            case gl::state::DIRTY_BIT_CURRENT_VALUES:
+            {
+                invalidateDefaultAttribs(mState.getAndResetDirtyCurrentValues());
                 break;
             }
             default:
@@ -843,6 +864,11 @@ angle::Result ContextGX2::updateState(const gl::Context *context)
                                          mBlendColor.alpha);
                 break;
             }
+            case DIRTY_BIT_GX2_DEFAULT_ATTRIBS:
+            {
+                ANGLE_TRY(handleDirtyDefaultAttribs(context));
+                break;
+            }
         }
     }
 
@@ -972,6 +998,47 @@ void ContextGX2::updateTextureBindings(const gl::Context *context)
             GX2SetPixelSampler(textureGX2->getSampler(), textureUnit);
         }
     }
+}
+
+void ContextGX2::invalidateDefaultAttribs(const gl::AttributesMask &dirtyMask)
+{
+    if (dirtyMask.any())
+    {
+        mDirtyDefaultAttribsMask |= dirtyMask;
+        mInternalDirtyBits.set(DIRTY_BIT_GX2_DEFAULT_ATTRIBS);
+    }
+}
+
+angle::Result ContextGX2::handleDirtyDefaultAttribs(const gl::Context *context)
+{
+    // TODO handle if default attribs are still in use by GPU
+
+    // Allocate default attribute buffer if it doesn't exist yet
+    if (!mDefaultAttribsBuffer)
+    {
+        mDefaultAttribsBuffer = mRenderer->allocateMemory(
+            GX2_VERTEX_BUFFER_ALIGNMENT, gx2::kDefaultAttributeSize * gl::MAX_VERTEX_ATTRIBS);
+    }
+
+    // Copy default values into buffer
+    for (size_t attribIndex : mDirtyDefaultAttribsMask)
+    {
+        const gl::VertexAttribCurrentValueData &defaultValue =
+            mState.getVertexAttribCurrentValues()[attribIndex];
+
+        memcpy(static_cast<uint8_t *>(mDefaultAttribsBuffer) +
+                   (attribIndex * gx2::kDefaultAttributeSize),
+               &defaultValue.Values, gx2::kDefaultAttributeSize);
+    }
+
+    GX2Invalidate(GX2_INVALIDATE_MODE_CPU_ATTRIBUTE_BUFFER, mDefaultAttribsBuffer,
+                  gx2::kDefaultAttributeSize * gl::MAX_VERTEX_ATTRIBS);
+    GX2SetAttribBuffer(gx2::kDefaultAttributesBuffer,
+                       gx2::kDefaultAttributeSize * gl::MAX_VERTEX_ATTRIBS, 0,
+                       mDefaultAttribsBuffer);
+
+    mDirtyDefaultAttribsMask.reset();
+    return angle::Result::Continue;
 }
 
 }  // namespace rx

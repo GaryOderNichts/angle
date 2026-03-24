@@ -35,15 +35,16 @@ set(gx2_backend_sources
     "src/libANGLE/renderer/gx2/TransformFeedbackGX2.h"
     "src/libANGLE/renderer/gx2/GLSLCompiler.cpp"
     "src/libANGLE/renderer/gx2/GLSLCompiler.h"
-    "src/libANGLE/renderer/gx2/gx2_utils.cpp"
-    "src/libANGLE/renderer/gx2/gx2_utils.h"
     "src/libANGLE/renderer/gx2/gx2_buffer_utils.cpp"
     "src/libANGLE/renderer/gx2/gx2_buffer_utils.h"
+    "src/libANGLE/renderer/gx2/gx2_common.h"
     "src/libANGLE/renderer/gx2/gx2_format_table.cpp"
     "src/libANGLE/renderer/gx2/gx2_format_utils.cpp"
     "src/libANGLE/renderer/gx2/gx2_format_utils.h"
     "src/libANGLE/renderer/gx2/gx2_texture_utils.cpp"
     "src/libANGLE/renderer/gx2/gx2_texture_utils.h"
+    "src/libANGLE/renderer/gx2/gx2_utils.cpp"
+    "src/libANGLE/renderer/gx2/gx2_utils.h"
 )
 
 set(angle_wiiu_sources
@@ -72,7 +73,7 @@ if (USE_ANGLE_EGL OR ENABLE_WEBGL)
         ANGLE_ENABLE_GX2
         ANGLE_ENABLE_GLSL
 
-        ANGLE_ASSERT_ALWAYS_ON
+        # ANGLE_ASSERT_ALWAYS_ON
 
         # add this to get traces for every gl call
         # ANGLE_ENABLE_TRACE_EVENTS

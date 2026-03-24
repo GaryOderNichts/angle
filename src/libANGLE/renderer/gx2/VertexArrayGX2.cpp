@@ -1,10 +1,12 @@
 #include "libANGLE/renderer/gx2/VertexArrayGX2.h"
 
 #include "libANGLE/Context.h"
+#include "libANGLE/formatutils.h"
 #include "libANGLE/renderer/gx2/BufferGX2.h"
 #include "libANGLE/renderer/gx2/ContextGX2.h"
 #include "libANGLE/renderer/gx2/ProgramGX2.h"
 #include "libANGLE/renderer/gx2/RendererGX2.h"
+#include "libANGLE/renderer/gx2/gx2_common.h"
 #include "libANGLE/renderer/gx2/gx2_format_utils.h"
 #include "libANGLE/renderer/gx2/gx2_utils.h"
 
@@ -156,13 +158,33 @@ angle::Result VertexArrayGX2::syncStateForDraw(const gl::Context *context,
 
     if (mAttribStreamDirty)
     {
-        std::vector<GX2AttribStream> attribStreams;
-        for (size_t attribIndex : mState.getEnabledAttributesMask())
-        {
-            attribStreams.push_back(mAttribStreams[attribIndex]);
-        }
+        const size_t attribCount = mAttribStreams.size();
 
-        const size_t attribCount = attribStreams.size();
+        // Build default attributes
+        // TODO do these have a performance impact? Check which the shader actually uses?
+        for (size_t attribIndex = 0; attribIndex < gl::MAX_VERTEX_ATTRIBS; attribIndex++)
+        {
+            const gl::VertexAttribute &attrib = mState.getVertexAttribute(attribIndex);
+            if (attrib.enabled)
+            {
+                continue;
+            }
+
+            const gl::VertexAttribCurrentValueData &defaultValue =
+                context->getState().getVertexAttribCurrentValues()[attribIndex];
+            const gx2::AttribFormat &format =
+                gx2::AttribFormat::Get(GetCurrentValueFormatID(defaultValue.Type));
+
+            GX2AttribStream &attribStream = mAttribStreams[attribIndex];
+            attribStream.location         = attribIndex;
+            attribStream.buffer           = gx2::kDefaultAttributesBuffer;
+            attribStream.offset           = attribIndex * gx2::kDefaultAttributeSize;
+            attribStream.format           = format.getAttribFormat();
+            attribStream.type             = GX2_ATTRIB_INDEX_PER_VERTEX;
+            attribStream.aluDivisor       = 1;
+            attribStream.mask             = format.getSelMask();
+            attribStream.endianSwap       = GX2_ENDIAN_SWAP_DEFAULT;
+        }
 
         if (mHasFetchShader)
         {
@@ -177,7 +199,7 @@ angle::Result VertexArrayGX2::syncStateForDraw(const gl::Context *context,
         ASSERT(mFetchShader.program != nullptr);
 
         GX2InitFetchShaderEx(&mFetchShader, static_cast<uint8_t *>(mFetchShader.program),
-                             attribCount, attribStreams.data(), GX2_FETCH_SHADER_TESSELLATION_NONE,
+                             attribCount, mAttribStreams.data(), GX2_FETCH_SHADER_TESSELLATION_NONE,
                              GX2_TESSELLATION_MODE_DISCRETE);
         GX2Invalidate(GX2_INVALIDATE_MODE_CPU_SHADER, mFetchShader.program, mFetchShader.size);
 
@@ -202,26 +224,25 @@ angle::Result VertexArrayGX2::syncDirtyAttrib(const gl::Context *context,
     // TODO not every attrib format is natively supported
     // there needs to be conversion code somewhere here
     const gx2::AttribFormat &format = gx2::AttribFormat::Get(attrib.format->id);
+    GX2AttribStream &attribStream   = mAttribStreams[attribIndex];
 
     if (attrib.enabled)
     {
-        GX2AttribStream &attribStream = mAttribStreams[attribIndex];
-        attribStream.location         = attribIndex;
-        attribStream.buffer           = attrib.bindingIndex;
-        attribStream.offset           = binding.getOffset();
-        attribStream.format           = format.getAttribFormat();
-        attribStream.type             = GX2_ATTRIB_INDEX_PER_VERTEX;
-        attribStream.aluDivisor       = binding.getDivisor();
-        attribStream.mask             = format.getSelMask();
-        attribStream.endianSwap       = GX2_ENDIAN_SWAP_DEFAULT;
-
-        mAttribStreamDirty = true;
+        attribStream.location   = attribIndex;
+        attribStream.buffer     = attrib.bindingIndex;
+        attribStream.offset     = binding.getOffset();
+        attribStream.format     = format.getAttribFormat();
+        attribStream.type       = GX2_ATTRIB_INDEX_PER_VERTEX;
+        attribStream.aluDivisor = binding.getDivisor();
+        attribStream.mask       = format.getSelMask();
+        attribStream.endianSwap = GX2_ENDIAN_SWAP_DEFAULT;
     }
     else
     {
-        // TODO handle default attribute
-        // UNIMPLEMENTED(); // SM64 spams this for some reason?
+        // Default attributes are handled in syncStateForDraw
     }
+
+    mAttribStreamDirty = true;
 
     return angle::Result::Continue;
 }
