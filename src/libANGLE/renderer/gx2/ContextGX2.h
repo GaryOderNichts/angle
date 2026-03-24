@@ -277,6 +277,10 @@ class ContextGX2 : public ContextImpl, public MultisampleTextureInitializer
     void updateScissor();
     void updateTextureBindings(const gl::Context *context);
 
+    void invalidateDefaultAttribs(const gl::AttributesMask &dirtyMask);
+
+    angle::Result handleDirtyDefaultAttribs(const gl::Context *context);
+
     gl::Caps mCaps;
     gl::TextureCapsMap mTextureCaps;
     gl::Extensions mExtensions;
@@ -296,6 +300,7 @@ class ContextGX2 : public ContextImpl, public MultisampleTextureInitializer
         DIRTY_BIT_GX2_COLOR_CONTROL,
         DIRTY_BIT_GX2_BLEND,
         DIRTY_BIT_GX2_BLEND_COLOR,
+        DIRTY_BIT_GX2_DEFAULT_ATTRIBS,
 
         DIRTY_BIT_GX2_MAX,
     };
@@ -333,6 +338,9 @@ class ContextGX2 : public ContextImpl, public MultisampleTextureInitializer
     gl::ColorF mBlendColor;
 
     IncompleteTextureSet mIncompleteTextures;
+
+    gl::AttributesMask mDirtyDefaultAttribsMask;
+    void *mDefaultAttribsBuffer;
 
     // Technically it's not necessary for each ContextImpl to have its own
     // GX2ContextState since all dirty bits are going to be set on context switch.
