@@ -45,6 +45,7 @@ class ColorRenderTargetGX2 : public RenderTargetGX2
   private:
     GX2ColorBuffer mColorBuffer;
     bool mOwnsSurface;
+    bool mInFastMemory;
 };
 
 class DepthStencilRenderTargetGX2 : public RenderTargetGX2
@@ -66,6 +67,7 @@ class DepthStencilRenderTargetGX2 : public RenderTargetGX2
   private:
     GX2DepthBuffer mDepthBuffer;
     bool mOwnsSurface;
+    bool mInFastMemory;
 };
 
 }  // namespace rx

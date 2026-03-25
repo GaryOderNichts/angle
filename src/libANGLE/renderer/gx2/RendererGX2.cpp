@@ -15,13 +15,18 @@
 namespace
 {
 constexpr uint32_t kRingBufferSize = 0x100000u * 10;  // 10 MiB
-}  // namespace
+
+constexpr size_t kMem1TrackingBlockCount = 128;
+constexpr size_t kMem1TrackingSize =
+    sizeof(MEMBlockHeapTracking) + sizeof(MEMBlockHeapBlock) * kMem1TrackingBlockCount;
+}  // anonymous namespace
 
 namespace rx
 {
 
 RendererGX2::RendererGX2()
     : mDisplay(),
+      mAnnotator(),
       mCommandBufferPool(),
       mTVRenderMode(),
       mTVWidth(),
@@ -34,7 +39,9 @@ RendererGX2::RendererGX2()
       mDrcScanBufferSize(),
       mDrcScanBuffer(),
       mInForeground(false),
-      mAnnotator(),
+      mMem1Heap(),
+      mMem1HeapHandle(),
+      mMem1HeapTrackingAllocations(),
       mRingBufferData(),
       mRingBufferOffset(0),
       mActiveFreeQueue(false),
@@ -114,7 +121,6 @@ egl::Error RendererGX2::initialize(egl::Display *display)
                    &mDrcScanBufferSize, &unk);
 
     // Register callbacks to handle foreground only allocations
-    // TODO these cannot be unregistered, causing issues when re-initializing
     ProcUIRegisterCallback(PROCUI_CALLBACK_ACQUIRE, foregroundAcquiredCallback, this, 100);
     ProcUIRegisterCallback(PROCUI_CALLBACK_RELEASE, foregroundReleasedCallback, this, 100);
 
@@ -126,6 +132,11 @@ egl::Error RendererGX2::initialize(egl::Display *display)
 
     GX2SetTVScale(mTVWidth, mTVHeight);
     GX2SetDRCScale(mDrcWidth, mDrcHeight);
+
+    if (!initializeMem1Heap())
+    {
+        return egl::Error(EGL_NOT_INITIALIZED, 0, "MEM1 heap initialization failed");
+    }
 
     // Initialize ringbuffer
     mRingBufferOffset = 0;
@@ -147,6 +158,10 @@ void RendererGX2::terminate()
         onForegroundReleased();
     }
 
+    // TODO this is necessary for reinitializing gl contexts, but clears potential user registered
+    // callbacks
+    ProcUIClearCallbacks();
+
     // Shutdown and free GX2 related things
     GX2Shutdown();
 
@@ -156,6 +171,9 @@ void RendererGX2::terminate()
     free(mRingBufferData);
     mRingBufferData = nullptr;
 
+    deinitializeMem1Heap();
+
+    // FIXME Currently causes issues with RPL deinit, so just keep initialized for now
     // GLSL_Shutdown();
 
     sRendererExists = false;
@@ -204,6 +222,35 @@ void RendererGX2::freeMemory(void *ptr)
     {
         mFreeQueues[mActiveFreeQueue].push(ptr);
     }
+}
+
+void *RendererGX2::allocateFastMemory(size_t alignment, size_t size)
+{
+    void *ptr = MEMAllocFromBlockHeapEx(mMem1HeapHandle, size, alignment);
+    if (!ptr)
+    {
+        // Did we run out of tracking?
+        if (MEMGetTrackingLeftInBlockHeap(mMem1HeapHandle) >= 2)
+        {
+            return nullptr;
+        }
+
+        // Add more tracking data
+        if (!addMem1HeapTracking())
+        {
+            return nullptr;
+        }
+
+        // Retry allocation
+        ptr = MEMAllocFromBlockHeapEx(mMem1HeapHandle, size, alignment);
+    }
+
+    return ptr;
+}
+
+void RendererGX2::freeFastMemory(void *ptr)
+{
+    MEMFreeToBlockHeap(mMem1HeapHandle, ptr);
 }
 
 void RendererGX2::drawDone()
@@ -268,29 +315,10 @@ int RendererGX2::onForegroundAcquired()
 {
     mInForeground = true;
 
-    MEMHeapHandle fgHeap = MEMGetBaseHeapHandle(MEM_BASE_HEAP_FG);
-
-    // Allocate and set TV scanbuffers from foreground memory
-    mTVScanBuffer = MEMAllocFromFrmHeapEx(fgHeap, mTVScanBufferSize, GX2_SCAN_BUFFER_ALIGNMENT);
-    if (!mTVScanBuffer)
+    if (!initializeScanBuffers())
     {
         return -1;
     }
-
-    GX2Invalidate(GX2_INVALIDATE_MODE_CPU, mTVScanBuffer, mTVScanBufferSize);
-    GX2SetTVBuffer(mTVScanBuffer, mTVScanBufferSize, mTVRenderMode,
-                   GX2_SURFACE_FORMAT_UNORM_R8_G8_B8_A8, GX2_BUFFERING_MODE_DOUBLE);
-
-    // Allocate and set DRC scanbuffers from foreground memory
-    mDrcScanBuffer = MEMAllocFromFrmHeapEx(fgHeap, mDrcScanBufferSize, GX2_SCAN_BUFFER_ALIGNMENT);
-    if (!mDrcScanBuffer)
-    {
-        return -1;
-    }
-
-    GX2Invalidate(GX2_INVALIDATE_MODE_CPU, mDrcScanBuffer, mDrcScanBufferSize);
-    GX2SetDRCBuffer(mDrcScanBuffer, mDrcScanBufferSize, mDrcRenderMode,
-                    GX2_SURFACE_FORMAT_UNORM_R8_G8_B8_A8, GX2_BUFFERING_MODE_DOUBLE);
 
     return 0;
 }
@@ -301,12 +329,96 @@ int RendererGX2::onForegroundReleased()
 
     mInForeground = false;
 
-    MEMHeapHandle fgHeap = MEMGetBaseHeapHandle(MEM_BASE_HEAP_FG);
-
-    // Free all foreground allocations
-    MEMFreeToFrmHeap(fgHeap, MEM_FRM_HEAP_FREE_ALL);
+    deinitializeScanBuffers();
 
     return 0;
+}
+
+bool RendererGX2::initializeScanBuffers()
+{
+    MEMHeapHandle fgHeap = MEMGetBaseHeapHandle(MEM_BASE_HEAP_FG);
+
+    // Allocate and set TV scanbuffers from foreground memory
+    mTVScanBuffer = MEMAllocFromFrmHeapEx(fgHeap, mTVScanBufferSize, GX2_SCAN_BUFFER_ALIGNMENT);
+    if (!mTVScanBuffer)
+    {
+        return false;
+    }
+
+    GX2Invalidate(GX2_INVALIDATE_MODE_CPU, mTVScanBuffer, mTVScanBufferSize);
+    GX2SetTVBuffer(mTVScanBuffer, mTVScanBufferSize, mTVRenderMode,
+                   GX2_SURFACE_FORMAT_UNORM_R8_G8_B8_A8, GX2_BUFFERING_MODE_DOUBLE);
+
+    // Allocate and set DRC scanbuffers from foreground memory
+    mDrcScanBuffer = MEMAllocFromFrmHeapEx(fgHeap, mDrcScanBufferSize, GX2_SCAN_BUFFER_ALIGNMENT);
+    if (!mDrcScanBuffer)
+    {
+        return false;
+    }
+
+    GX2Invalidate(GX2_INVALIDATE_MODE_CPU, mDrcScanBuffer, mDrcScanBufferSize);
+    GX2SetDRCBuffer(mDrcScanBuffer, mDrcScanBufferSize, mDrcRenderMode,
+                    GX2_SURFACE_FORMAT_UNORM_R8_G8_B8_A8, GX2_BUFFERING_MODE_DOUBLE);
+
+    return true;
+}
+
+void RendererGX2::deinitializeScanBuffers()
+{
+    // Free all foreground allocations
+    MEMHeapHandle fgHeap = MEMGetBaseHeapHandle(MEM_BASE_HEAP_FG);
+    MEMFreeToFrmHeap(fgHeap, MEM_FRM_HEAP_FREE_ALL);
+}
+
+bool RendererGX2::initializeMem1Heap()
+{
+    // Allocate as much as possible from MEM1 base heap
+    MEMHeapHandle baseHeap = MEMGetBaseHeapHandle(MEM_BASE_HEAP_MEM1);
+    uint32_t mem1Size      = MEMGetAllocatableSizeForFrmHeapEx(baseHeap, 4);
+    uint8_t *mem1Data      = static_cast<uint8_t *>(MEMAllocFromFrmHeapEx(baseHeap, mem1Size, 4));
+    if (!mem1Data)
+    {
+        return false;
+    }
+
+    mMem1HeapHandle = MEMInitBlockHeap(&mMem1Heap, mem1Data, mem1Data + mem1Size, nullptr, 0, 0);
+    if (!mMem1HeapHandle)
+    {
+        return false;
+    }
+
+    // Allocate initial heap tracking data
+    return addMem1HeapTracking();
+}
+
+void RendererGX2::deinitializeMem1Heap()
+{
+    MEMDestroyBlockHeap(mMem1HeapHandle);
+
+    // Free all mem1 allocations
+    MEMHeapHandle baseHeap = MEMGetBaseHeapHandle(MEM_BASE_HEAP_MEM1);
+    MEMFreeToFrmHeap(baseHeap, MEM_FRM_HEAP_FREE_ALL);
+
+    // Free tracking allocations
+    for (MEMBlockHeapTracking *data : mMem1HeapTrackingAllocations)
+    {
+        free(data);
+    }
+    mMem1HeapTrackingAllocations.clear();
+}
+
+bool RendererGX2::addMem1HeapTracking()
+{
+    MEMBlockHeapTracking *trackingData =
+        static_cast<MEMBlockHeapTracking *>(malloc(kMem1TrackingSize));
+    if (!trackingData)
+    {
+        return false;
+    }
+
+    mMem1HeapTrackingAllocations.push_back(trackingData);
+    MEMAddBlockHeapTracking(mMem1HeapHandle, trackingData, kMem1TrackingSize);
+    return true;
 }
 
 }  // namespace rx
