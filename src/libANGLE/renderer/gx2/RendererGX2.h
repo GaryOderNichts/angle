@@ -8,6 +8,7 @@
 
 #include <queue>
 
+#include <coreinit/memblockheap.h>
 #include <coreinit/time.h>
 #include <gx2/enum.h>
 
@@ -35,6 +36,10 @@ class RendererGX2 : angle::NonCopyable
     void *allocateFromRingBuffer(size_t alignment, size_t size);
     void *allocateMemory(size_t alignment, size_t size);
     void freeMemory(void *ptr);
+    void *allocateFastMemory(size_t alignment, size_t size);
+    void freeFastMemory(void *ptr);
+
+    void drawDone();
     void notifyFrameEnd();
 
     egl::Display *getDisplay() const { return mDisplay; };
@@ -54,11 +59,17 @@ class RendererGX2 : angle::NonCopyable
     int onForegroundAcquired();
     int onForegroundReleased();
 
-    void drawDone();
+    bool initializeScanBuffers();
+    void deinitializeScanBuffers();
+
+    bool initializeMem1Heap();
+    void deinitializeMem1Heap();
+    bool addMem1HeapTracking();
 
     static inline bool sRendererExists = false;
 
     egl::Display *mDisplay;
+    DebugAnnotatorGX2 mAnnotator;
 
     void *mCommandBufferPool;
 
@@ -76,7 +87,9 @@ class RendererGX2 : angle::NonCopyable
 
     bool mInForeground;
 
-    DebugAnnotatorGX2 mAnnotator;
+    MEMBlockHeap mMem1Heap;
+    MEMHeapHandle mMem1HeapHandle;
+    std::vector<MEMBlockHeapTracking *> mMem1HeapTrackingAllocations;
 
     uint8_t *mRingBufferData;
     size_t mRingBufferOffset;

@@ -13,7 +13,7 @@ RenderTargetGX2::RenderTargetGX2(RendererGX2 *renderer) : mRenderer(renderer) {}
 RenderTargetGX2::~RenderTargetGX2() {}
 
 ColorRenderTargetGX2::ColorRenderTargetGX2(RendererGX2 *renderer)
-    : RenderTargetGX2(renderer), mColorBuffer(), mOwnsSurface()
+    : RenderTargetGX2(renderer), mColorBuffer(), mOwnsSurface(false), mInFastMemory(false)
 {}
 
 ColorRenderTargetGX2::~ColorRenderTargetGX2() {}
@@ -56,11 +56,23 @@ bool ColorRenderTargetGX2::initialize(GLsizei width,
 
     ASSERT(mColorBuffer.surface.alignment != 0 && mColorBuffer.surface.imageSize != 0);
 
-    mColorBuffer.surface.image =
-        mRenderer->allocateMemory(mColorBuffer.surface.alignment, mColorBuffer.surface.imageSize);
+    mColorBuffer.surface.image = mRenderer->allocateFastMemory(mColorBuffer.surface.alignment,
+                                                               mColorBuffer.surface.imageSize);
     if (!mColorBuffer.surface.image)
     {
-        return false;
+        // Allocation in fast memory failed, use slow MEM2
+        mColorBuffer.surface.image = mRenderer->allocateMemory(mColorBuffer.surface.alignment,
+                                                               mColorBuffer.surface.imageSize);
+        if (!mColorBuffer.surface.image)
+        {
+            return false;
+        }
+
+        mInFastMemory = false;
+    }
+    else
+    {
+        mInFastMemory = true;
     }
 
     GX2Invalidate(GX2_INVALIDATE_MODE_CPU, mColorBuffer.surface.image,
@@ -81,7 +93,14 @@ void ColorRenderTargetGX2::destroy()
     // GX2Invalidate(GX2_INVALIDATE_MODE_COLOR_BUFFER, mColorBuffer.surface.image,
     // mColorBuffer.surface.imageSize);
 
-    mRenderer->freeMemory(mColorBuffer.surface.image);
+    if (mInFastMemory)
+    {
+        mRenderer->freeFastMemory(mColorBuffer.surface.image);
+    }
+    else
+    {
+        mRenderer->freeMemory(mColorBuffer.surface.image);
+    }
     mColorBuffer.surface.image = nullptr;
 }
 
@@ -96,7 +115,7 @@ GLsizei ColorRenderTargetGX2::getWidth() const
 }
 
 DepthStencilRenderTargetGX2::DepthStencilRenderTargetGX2(RendererGX2 *renderer)
-    : RenderTargetGX2(renderer), mDepthBuffer(), mOwnsSurface()
+    : RenderTargetGX2(renderer), mDepthBuffer(), mOwnsSurface(false), mInFastMemory(false)
 {}
 
 DepthStencilRenderTargetGX2::~DepthStencilRenderTargetGX2() {}
@@ -132,11 +151,23 @@ bool DepthStencilRenderTargetGX2::initialize(GLsizei width,
 
     ASSERT(mDepthBuffer.surface.alignment != 0 && mDepthBuffer.surface.imageSize != 0);
 
-    mDepthBuffer.surface.image =
-        mRenderer->allocateMemory(mDepthBuffer.surface.alignment, mDepthBuffer.surface.imageSize);
+    mDepthBuffer.surface.image = mRenderer->allocateFastMemory(mDepthBuffer.surface.alignment,
+                                                               mDepthBuffer.surface.imageSize);
     if (!mDepthBuffer.surface.image)
     {
-        return false;
+        // Allocation in fast memory failed, use slow MEM2
+        mDepthBuffer.surface.image = mRenderer->allocateMemory(mDepthBuffer.surface.alignment,
+                                                               mDepthBuffer.surface.imageSize);
+        if (!mDepthBuffer.surface.image)
+        {
+            return false;
+        }
+
+        mInFastMemory = false;
+    }
+    else
+    {
+        mInFastMemory = true;
     }
 
     GX2Invalidate(GX2_INVALIDATE_MODE_CPU, mDepthBuffer.surface.image,
@@ -157,7 +188,14 @@ void DepthStencilRenderTargetGX2::destroy()
     // GX2Invalidate(GX2_INVALIDATE_DEPTH_BUFFER, mColorBuffer.surface.image,
     // mColorBuffer.surface.imageSize);
 
-    mRenderer->freeMemory(mDepthBuffer.surface.image);
+    if (mInFastMemory)
+    {
+        mRenderer->freeFastMemory(mDepthBuffer.surface.image);
+    }
+    else
+    {
+        mRenderer->freeMemory(mDepthBuffer.surface.image);
+    }
     mDepthBuffer.surface.image = nullptr;
 }
 
