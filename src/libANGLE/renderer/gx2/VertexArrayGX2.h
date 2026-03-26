@@ -41,11 +41,12 @@ class VertexArrayGX2 : public VertexArrayImpl
                                   size_t attribIndex);
     angle::Result syncDirtyBufferData(const gl::Context *context, size_t bindingIndex);
 
+    angle::Result buildFetchShader(const gl::Context *context);
+
     gl::AttribArray<GX2AttribStream> mAttribStreams;
     bool mAttribStreamDirty;
 
     GX2FetchShader mFetchShader;
-    bool mHasFetchShader;
 };
 
 }  // namespace rx
