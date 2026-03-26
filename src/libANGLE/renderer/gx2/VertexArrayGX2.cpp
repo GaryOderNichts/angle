@@ -20,7 +20,10 @@ namespace rx
 
 VertexArrayGX2::VertexArrayGX2(const gl::VertexArrayState &data,
                                const gl::VertexArrayBuffers &vertexArrayBuffers)
-    : VertexArrayImpl(data, vertexArrayBuffers), mAttribStreamDirty(false), mHasFetchShader(false)
+    : VertexArrayImpl(data, vertexArrayBuffers),
+      mAttribStreams(),
+      mAttribStreamDirty(true),
+      mFetchShader()
 {}
 
 VertexArrayGX2::~VertexArrayGX2() {}
@@ -29,10 +32,10 @@ void VertexArrayGX2::destroy(const gl::Context *context)
 {
     ContextGX2 *contextGX2 = GetImplAs<ContextGX2>(context);
 
-    if (mHasFetchShader)
+    if (mFetchShader.program)
     {
         contextGX2->getRenderer()->freeMemory(mFetchShader.program);
-        mHasFetchShader = false;
+        mFetchShader.program = nullptr;
     }
 }
 
@@ -156,60 +159,12 @@ angle::Result VertexArrayGX2::syncStateForDraw(const gl::Context *context,
 
     if (mAttribStreamDirty)
     {
-        const size_t attribCount = mAttribStreams.size();
-
-        // Build default attributes
-        // TODO do these have a performance impact? Check which the shader actually uses?
-        for (size_t attribIndex = 0; attribIndex < gl::MAX_VERTEX_ATTRIBS; attribIndex++)
-        {
-            const gl::VertexAttribute &attrib = mState.getVertexAttribute(attribIndex);
-            if (attrib.enabled)
-            {
-                continue;
-            }
-
-            const gl::VertexAttribCurrentValueData &defaultValue =
-                context->getState().getVertexAttribCurrentValues()[attribIndex];
-            const gx2::AttribFormat &format =
-                gx2::AttribFormat::Get(GetCurrentValueFormatID(defaultValue.Type));
-
-            GX2AttribStream &attribStream = mAttribStreams[attribIndex];
-            attribStream.location         = attribIndex;
-            attribStream.buffer           = gx2::kDefaultAttributesBuffer;
-            attribStream.offset           = attribIndex * gx2::kDefaultAttributeSize;
-            attribStream.format           = format.getAttribFormat();
-            attribStream.type             = GX2_ATTRIB_INDEX_PER_VERTEX;
-            attribStream.aluDivisor       = 1;
-            attribStream.mask             = format.getSelMask();
-            attribStream.endianSwap       = GX2_ENDIAN_SWAP_DEFAULT;
-        }
-
-        if (mHasFetchShader)
-        {
-            contextGX2->getRenderer()->freeMemory(mFetchShader.program);
-            mHasFetchShader = false;
-        }
-
-        mFetchShader.size = GX2CalcFetchShaderSizeEx(
-            attribCount, GX2_FETCH_SHADER_TESSELLATION_NONE, GX2_TESSELLATION_MODE_DISCRETE);
-        mFetchShader.program = contextGX2->getRenderer()->allocateMemory(
-            GX2_SHADER_PROGRAM_ALIGNMENT, mFetchShader.size);
-        ASSERT(mFetchShader.program != nullptr);
-
-        GX2InitFetchShaderEx(&mFetchShader, static_cast<uint8_t *>(mFetchShader.program),
-                             attribCount, mAttribStreams.data(), GX2_FETCH_SHADER_TESSELLATION_NONE,
-                             GX2_TESSELLATION_MODE_DISCRETE);
-        GX2Invalidate(GX2_INVALIDATE_MODE_CPU_SHADER, mFetchShader.program, mFetchShader.size);
-
-        mHasFetchShader    = true;
+        ANGLE_TRY(buildFetchShader(context));
         mAttribStreamDirty = false;
     }
 
-    if (mHasFetchShader)
-    {
-        // TODO we could probably handle this in the context
-        GX2SetFetchShader(&mFetchShader);
-    }
+    // TODO we could probably handle this somewhere in ContextGX2?
+    GX2SetFetchShader(&mFetchShader);
 
     return angle::Result::Continue;
 }
@@ -253,10 +208,82 @@ angle::Result VertexArrayGX2::syncDirtyAttrib(const gl::Context *context,
     }
     else
     {
-        // Default attributes are handled in syncStateForDraw
+        // Default attributes are handled in buildFetchShader
     }
 
     mAttribStreamDirty = true;
+
+    return angle::Result::Continue;
+}
+
+angle::Result VertexArrayGX2::buildFetchShader(const gl::Context *context)
+{
+    ContextGX2 *contextGX2                  = GetImplAs<ContextGX2>(context);
+    const gl::ProgramExecutable *executable = context->getState().getProgramExecutable();
+
+    std::vector<GX2AttribStream> attribStreams;
+    attribStreams.reserve(gl::MAX_VERTEX_ATTRIBS);
+
+    // Add enabled attributes to attrib stream
+    for (size_t attribIndex : mState.getEnabledAttributesMask())
+    {
+        attribStreams.push_back(mAttribStreams[attribIndex]);
+    }
+
+    // Add required default attribs to attrib stream
+    // TODO should we explicitly rebuild the fetch shader if the current program executable changes?
+    for (auto &input : executable->getProgramInputs())
+    {
+        // No need to add default attribs for inactive or built in attribs
+        if (!input.isActive() || input.isBuiltIn())
+        {
+            continue;
+        }
+
+        const int attribIndex             = input.getLocation();
+        const gl::VertexAttribute &attrib = mState.getVertexAttribute(attribIndex);
+        if (attrib.enabled)
+        {
+            continue;
+        }
+
+        const gl::VertexAttribCurrentValueData &defaultValue =
+            context->getState().getVertexAttribCurrentValues()[attribIndex];
+        const gx2::AttribFormat &format =
+            gx2::AttribFormat::Get(GetCurrentValueFormatID(defaultValue.Type));
+
+        GX2AttribStream &attribStream = attribStreams.emplace_back();
+        attribStream.location         = attribIndex;
+        attribStream.buffer           = gx2::kDefaultAttributesBuffer;
+        attribStream.offset           = attribIndex * gx2::kDefaultAttributeSize;
+        attribStream.format           = format.getAttribFormat();
+        attribStream.type             = GX2_ATTRIB_INDEX_PER_VERTEX;
+        attribStream.aluDivisor       = 1;
+        attribStream.mask             = format.getSelMask();
+        attribStream.endianSwap       = GX2_ENDIAN_SWAP_DEFAULT;
+    }
+
+    if (mFetchShader.program)
+    {
+        contextGX2->getRenderer()->freeMemory(mFetchShader.program);
+        mFetchShader.program = nullptr;
+    }
+
+    const size_t attribCount = attribStreams.size();
+
+    mFetchShader.size = GX2CalcFetchShaderSizeEx(attribCount, GX2_FETCH_SHADER_TESSELLATION_NONE,
+                                                 GX2_TESSELLATION_MODE_DISCRETE);
+    mFetchShader.program =
+        contextGX2->getRenderer()->allocateMemory(GX2_SHADER_PROGRAM_ALIGNMENT, mFetchShader.size);
+    if (!mFetchShader.program)
+    {
+        return angle::Result::Stop;
+    }
+
+    GX2InitFetchShaderEx(&mFetchShader, static_cast<uint8_t *>(mFetchShader.program), attribCount,
+                         attribStreams.data(), GX2_FETCH_SHADER_TESSELLATION_NONE,
+                         GX2_TESSELLATION_MODE_DISCRETE);
+    GX2Invalidate(GX2_INVALIDATE_MODE_CPU_SHADER, mFetchShader.program, mFetchShader.size);
 
     return angle::Result::Continue;
 }
