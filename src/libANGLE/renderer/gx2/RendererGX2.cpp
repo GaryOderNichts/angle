@@ -10,6 +10,7 @@
 #include <gx2/event.h>
 #include <gx2/mem.h>
 #include <gx2/state.h>
+#include <gx2/swap.h>
 #include <proc_ui/procui.h>
 
 namespace
@@ -156,6 +157,10 @@ void RendererGX2::terminate()
     if (mInForeground)
     {
         onForegroundReleased();
+
+        // Free all mem1 allocations
+        MEMHeapHandle baseHeap = MEMGetBaseHeapHandle(MEM_BASE_HEAP_MEM1);
+        MEMFreeToFrmHeap(baseHeap, MEM_FRM_HEAP_FREE_ALL);
     }
 
     // TODO this is necessary for reinitializing gl contexts, but clears potential user registered
@@ -226,6 +231,11 @@ void RendererGX2::freeMemory(void *ptr)
 
 void *RendererGX2::allocateFastMemory(size_t alignment, size_t size)
 {
+    if (!mMem1HeapHandle)
+    {
+        return nullptr;
+    }
+
     void *ptr = MEMAllocFromBlockHeapEx(mMem1HeapHandle, size, alignment);
     if (!ptr)
     {
@@ -250,6 +260,11 @@ void *RendererGX2::allocateFastMemory(size_t alignment, size_t size)
 
 void RendererGX2::freeFastMemory(void *ptr)
 {
+    if (!ptr || !mMem1HeapHandle)
+    {
+        return;
+    }
+
     MEMFreeToBlockHeap(mMem1HeapHandle, ptr);
 }
 
@@ -320,6 +335,12 @@ int RendererGX2::onForegroundAcquired()
         return -1;
     }
 
+    // Workaround for issues when leaving foreground with disabled vsync
+    if (GX2GetSwapInterval() == 0)
+    {
+        GX2SetSwapInterval(0);
+    }
+
     return 0;
 }
 
@@ -381,7 +402,8 @@ bool RendererGX2::initializeMem1Heap()
         return false;
     }
 
-    mMem1HeapHandle = MEMInitBlockHeap(&mMem1Heap, mem1Data, mem1Data + mem1Size, nullptr, 0, 0);
+    mMem1HeapHandle =
+        MEMInitBlockHeap(&mMem1Heap, mem1Data, mem1Data + mem1Size - 1, nullptr, 0, 0);
     if (!mMem1HeapHandle)
     {
         return false;
@@ -394,10 +416,7 @@ bool RendererGX2::initializeMem1Heap()
 void RendererGX2::deinitializeMem1Heap()
 {
     MEMDestroyBlockHeap(mMem1HeapHandle);
-
-    // Free all mem1 allocations
-    MEMHeapHandle baseHeap = MEMGetBaseHeapHandle(MEM_BASE_HEAP_MEM1);
-    MEMFreeToFrmHeap(baseHeap, MEM_FRM_HEAP_FREE_ALL);
+    mMem1HeapHandle = nullptr;
 
     // Free tracking allocations
     for (MEMBlockHeapTracking *data : mMem1HeapTrackingAllocations)
