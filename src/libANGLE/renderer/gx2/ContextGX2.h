@@ -272,6 +272,20 @@ class ContextGX2 : public ContextImpl, public MultisampleTextureInitializer
                             gl::DrawElementsType indexTypeOrInvalid,
                             const void *indices);
 
+    angle::Result drawArraysImpl(const gl::Context *context,
+                                 gl::PrimitiveMode mode,
+                                 GLint first,
+                                 GLsizei count,
+                                 GLsizei instances);
+
+    angle::Result drawElementsImpl(const gl::Context *context,
+                                   gl::PrimitiveMode mode,
+                                   GLsizei count,
+                                   gl::DrawElementsType type,
+                                   const void *indices,
+                                   GLsizei instances,
+                                   GLint baseVertex);
+
     void updateDrawFramebufferBinding(const gl::Context *context);
     void updateViewport();
     void updateScissor();
