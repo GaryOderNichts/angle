@@ -172,11 +172,7 @@ angle::Result ContextGX2::drawArrays(const gl::Context *context,
                                      GLint first,
                                      GLsizei count)
 {
-    ANGLE_TRY(
-        setupDraw(context, mode, first, count, 1, gl::DrawElementsType::InvalidEnum, nullptr));
-
-    GX2DrawEx(gl_gx2::GetPrimitiveMode(mode), count, first, 1);
-    return angle::Result::Continue;
+    return drawArraysImpl(context, mode, first, count, 1);
 }
 
 angle::Result ContextGX2::drawArraysInstanced(const gl::Context *context,
@@ -185,8 +181,7 @@ angle::Result ContextGX2::drawArraysInstanced(const gl::Context *context,
                                               GLsizei count,
                                               GLsizei instanceCount)
 {
-    UNIMPLEMENTED();
-    return angle::Result::Continue;
+    return drawArraysImpl(context, mode, first, count, instanceCount);
 }
 
 angle::Result ContextGX2::drawArraysInstancedBaseInstance(const gl::Context *context,
@@ -206,28 +201,7 @@ angle::Result ContextGX2::drawElements(const gl::Context *context,
                                        gl::DrawElementsType type,
                                        const void *indices)
 {
-    ANGLE_TRY(setupDraw(context, mode, 0, count, 1, type, indices));
-
-    BufferGX2 *elementArrayBufferGX2 =
-        SafeGetImplAs<BufferGX2>(mState.getVertexArray()->getElementArrayBuffer());
-
-    if (elementArrayBufferGX2)
-    {
-        // TODO not sure if we should just add the offset to the index buffer
-        // might mess with alignment?
-        size_t offset = reinterpret_cast<size_t>(indices);
-
-        elementArrayBufferGX2->onUsed(context);
-
-        GX2DrawIndexedEx(gl_gx2::GetPrimitiveMode(mode), count, gl_gx2::GetIndexType(type),
-                         elementArrayBufferGX2->getDataPtr() + offset, 0, 1);
-    }
-    else
-    {
-        GX2DrawIndexedImmediateEx(gl_gx2::GetPrimitiveMode(mode), count, gl_gx2::GetIndexType(type),
-                                  indices, 0, 1);
-    }
-    return angle::Result::Continue;
+    return drawElementsImpl(context, mode, count, type, indices, 1, 0);
 }
 
 angle::Result ContextGX2::drawElementsBaseVertex(const gl::Context *context,
@@ -237,8 +211,7 @@ angle::Result ContextGX2::drawElementsBaseVertex(const gl::Context *context,
                                                  const void *indices,
                                                  GLint baseVertex)
 {
-    UNIMPLEMENTED();
-    return angle::Result::Continue;
+    return drawElementsImpl(context, mode, count, type, indices, 1, baseVertex);
 }
 
 angle::Result ContextGX2::drawElementsInstanced(const gl::Context *context,
@@ -248,8 +221,7 @@ angle::Result ContextGX2::drawElementsInstanced(const gl::Context *context,
                                                 const void *indices,
                                                 GLsizei instances)
 {
-    UNIMPLEMENTED();
-    return angle::Result::Continue;
+    return drawElementsImpl(context, mode, count, type, indices, instances, 0);
 }
 
 angle::Result ContextGX2::drawElementsInstancedBaseVertex(const gl::Context *context,
@@ -260,8 +232,7 @@ angle::Result ContextGX2::drawElementsInstancedBaseVertex(const gl::Context *con
                                                           GLsizei instances,
                                                           GLint baseVertex)
 {
-    UNIMPLEMENTED();
-    return angle::Result::Continue;
+    return drawElementsImpl(context, mode, count, type, indices, instances, baseVertex);
 }
 
 angle::Result ContextGX2::drawElementsInstancedBaseVertexBaseInstance(const gl::Context *context,
@@ -297,9 +268,7 @@ angle::Result ContextGX2::drawRangeElementsBaseVertex(const gl::Context *context
                                                       const void *indices,
                                                       GLint baseVertex)
 {
-    // TODO
-    UNIMPLEMENTED();
-    return angle::Result::Continue;
+    return drawElementsBaseVertex(context, mode, count, type, indices, baseVertex);
 }
 
 angle::Result ContextGX2::drawArraysIndirect(const gl::Context *context,
@@ -910,6 +879,53 @@ angle::Result ContextGX2::setupDraw(const gl::Context *context,
 
     vaoGX2->notifyDraw(context);
 
+    return angle::Result::Continue;
+}
+
+angle::Result ContextGX2::drawArraysImpl(const gl::Context *context,
+                                         gl::PrimitiveMode mode,
+                                         GLint first,
+                                         GLsizei count,
+                                         GLsizei instances)
+{
+    ANGLE_TRY(
+        setupDraw(context, mode, first, count, 1, gl::DrawElementsType::InvalidEnum, nullptr));
+
+    GX2DrawEx(gl_gx2::GetPrimitiveMode(mode), count, first, instances);
+    return angle::Result::Continue;
+}
+
+angle::Result ContextGX2::drawElementsImpl(const gl::Context *context,
+                                           gl::PrimitiveMode mode,
+                                           GLsizei count,
+                                           gl::DrawElementsType type,
+                                           const void *indices,
+                                           GLsizei instances,
+                                           GLint baseVertex)
+{
+    ASSERT(instances > 0);
+
+    ANGLE_TRY(setupDraw(context, mode, baseVertex, count, instances, type, indices));
+
+    BufferGX2 *elementArrayBufferGX2 =
+        SafeGetImplAs<BufferGX2>(mState.getVertexArray()->getElementArrayBuffer());
+
+    if (elementArrayBufferGX2)
+    {
+        // TODO not sure if we should just add the offset to the index buffer
+        // might mess with alignment?
+        size_t offset = reinterpret_cast<size_t>(indices);
+
+        elementArrayBufferGX2->onUsed(context);
+
+        GX2DrawIndexedEx(gl_gx2::GetPrimitiveMode(mode), count, gl_gx2::GetIndexType(type),
+                         elementArrayBufferGX2->getDataPtr() + offset, baseVertex, instances);
+    }
+    else
+    {
+        GX2DrawIndexedImmediateEx(gl_gx2::GetPrimitiveMode(mode), count, gl_gx2::GetIndexType(type),
+                                  indices, baseVertex, instances);
+    }
     return angle::Result::Continue;
 }
 
