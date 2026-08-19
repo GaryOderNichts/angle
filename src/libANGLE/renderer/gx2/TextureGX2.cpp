@@ -120,7 +120,7 @@ angle::Result TextureGX2::copyTexture(const gl::Context *context,
                                       const gl::ImageIndex &index,
                                       GLenum internalFormat,
                                       GLenum type,
-                                      GLint sourceLevel,
+                                      gl::LevelIndex sourceLevel,
                                       bool unpackFlipY,
                                       bool unpackPremultiplyAlpha,
                                       bool unpackUnmultiplyAlpha,
@@ -133,7 +133,7 @@ angle::Result TextureGX2::copyTexture(const gl::Context *context,
 angle::Result TextureGX2::copySubTexture(const gl::Context *context,
                                          const gl::ImageIndex &index,
                                          const gl::Offset &destOffset,
-                                         GLint sourceLevel,
+                                         gl::LevelIndex sourceLevel,
                                          const gl::Box &sourceBox,
                                          bool unpackFlipY,
                                          bool unpackPremultiplyAlpha,
@@ -146,17 +146,14 @@ angle::Result TextureGX2::copySubTexture(const gl::Context *context,
 
 angle::Result TextureGX2::copyRenderbufferSubData(const gl::Context *context,
                                                   const gl::Renderbuffer *srcBuffer,
-                                                  GLint srcLevel,
                                                   GLint srcX,
                                                   GLint srcY,
-                                                  GLint srcZ,
-                                                  GLint dstLevel,
+                                                  gl::LevelIndex dstLevel,
                                                   GLint dstX,
                                                   GLint dstY,
-                                                  GLint dstZ,
+                                                  gl::LayerIndex dstZ,
                                                   GLsizei srcWidth,
-                                                  GLsizei srcHeight,
-                                                  GLsizei srcDepth)
+                                                  GLsizei srcHeight)
 {
     UNIMPLEMENTED();
     return angle::Result::Continue;
@@ -164,14 +161,14 @@ angle::Result TextureGX2::copyRenderbufferSubData(const gl::Context *context,
 
 angle::Result TextureGX2::copyTextureSubData(const gl::Context *context,
                                              const gl::Texture *srcTexture,
-                                             GLint srcLevel,
+                                             gl::LevelIndex srcLevel,
                                              GLint srcX,
                                              GLint srcY,
-                                             GLint srcZ,
-                                             GLint dstLevel,
+                                             gl::LayerIndex srcZ,
+                                             gl::LevelIndex dstLevel,
                                              GLint dstX,
                                              GLint dstY,
-                                             GLint dstZ,
+                                             gl::LayerIndex dstZ,
                                              GLsizei srcWidth,
                                              GLsizei srcHeight,
                                              GLsizei srcDepth)
@@ -444,14 +441,9 @@ angle::Result TextureGX2::setSubImageImpl(ContextGX2 *contextGX2,
     GLuint sourceRowPitch   = 0;
     GLuint sourceDepthPitch = 0;
     GLuint sourceSkipBytes  = 0;
-    ANGLE_CHECK_GL_MATH(contextGX2, formatInfo.computeRowPitch(type, area.width, unpack.alignment,
-                                                               unpack.rowLength, &sourceRowPitch));
-    ANGLE_CHECK_GL_MATH(
-        contextGX2, formatInfo.computeDepthPitch(area.height, unpack.imageHeight, sourceRowPitch,
-                                                 &sourceDepthPitch));
-    ANGLE_CHECK_GL_MATH(contextGX2,
-                        formatInfo.computeSkipBytes(type, sourceRowPitch, sourceDepthPitch, unpack,
-                                                    index.usesTex3D(), &sourceSkipBytes));
+    ANGLE_CHECK_GL_MATH(contextGX2, formatInfo.computeRowDepthSkipBytes(
+                                        type, area.width, area.height, unpack, index.usesTex3D(),
+                                        &sourceRowPitch, &sourceDepthPitch, &sourceSkipBytes));
 
     angle::FormatID angleFormatId =
         angle::Format::InternalFormatToID(formatInfo.sizedInternalFormat);

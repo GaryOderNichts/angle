@@ -248,48 +248,48 @@ GX2CompareFunction GetCompareFunction(const GLenum compareFunc)
     }
 }
 
-GX2BlendMode GetBlendMode(const GLenum blendFactor)
+GX2BlendMode GetBlendMode(gl::BlendFactorType blendFactor)
 {
     switch (blendFactor)
     {
-        case GL_ZERO:
+        case gl::BlendFactorType::Zero:
             return GX2_BLEND_MODE_ZERO;
-        case GL_ONE:
+        case gl::BlendFactorType::One:
             return GX2_BLEND_MODE_ONE;
-        case GL_SRC_COLOR:
+        case gl::BlendFactorType::SrcColor:
             return GX2_BLEND_MODE_SRC_COLOR;
-        case GL_DST_COLOR:
+        case gl::BlendFactorType::DstColor:
             return GX2_BLEND_MODE_DST_COLOR;
-        case GL_ONE_MINUS_SRC_COLOR:
+        case gl::BlendFactorType::OneMinusSrcColor:
             return GX2_BLEND_MODE_INV_SRC_COLOR;
-        case GL_SRC_ALPHA:
+        case gl::BlendFactorType::SrcAlpha:
             return GX2_BLEND_MODE_SRC_ALPHA;
-        case GL_ONE_MINUS_SRC_ALPHA:
+        case gl::BlendFactorType::OneMinusSrcAlpha:
             return GX2_BLEND_MODE_INV_SRC_ALPHA;
-        case GL_DST_ALPHA:
+        case gl::BlendFactorType::DstAlpha:
             return GX2_BLEND_MODE_DST_ALPHA;
-        case GL_ONE_MINUS_DST_ALPHA:
+        case gl::BlendFactorType::OneMinusDstAlpha:
             return GX2_BLEND_MODE_INV_DST_ALPHA;
-        case GL_ONE_MINUS_DST_COLOR:
+        case gl::BlendFactorType::OneMinusDstColor:
             return GX2_BLEND_MODE_INV_DST_COLOR;
-        case GL_SRC_ALPHA_SATURATE:
+        case gl::BlendFactorType::SrcAlphaSaturate:
             return GX2_BLEND_MODE_SRC_ALPHA_SAT;
-        case GL_CONSTANT_COLOR:
+        case gl::BlendFactorType::ConstantColor:
             return GX2_BLEND_MODE_BLEND_FACTOR;
-        case GL_ONE_MINUS_CONSTANT_COLOR:
+        case gl::BlendFactorType::OneMinusConstantColor:
             return GX2_BLEND_MODE_INV_BLEND_FACTOR;
-        case GL_CONSTANT_ALPHA:
+        case gl::BlendFactorType::ConstantAlpha:
             return GX2_BLEND_MODE_CONSTANT_ALPHA;
-        case GL_ONE_MINUS_CONSTANT_ALPHA:
+        case gl::BlendFactorType::OneMinusConstantAlpha:
             return GX2_BLEND_MODE_INV_CONSTANT_ALPHA;
-        case GL_SRC1_COLOR_EXT:  // TODO do we need to enable some ext for this? Yes, see
-                                 // blendFuncExtendedEXT
+        case gl::BlendFactorType::Src1Color:  // TODO do we need to enable some ext for this? Yes,
+                                              // see blendFuncExtendedEXT
             return GX2_BLEND_MODE_SRC1_COLOR;
-        case GL_SRC1_ALPHA_EXT:
+        case gl::BlendFactorType::Src1Alpha:
             return GX2_BLEND_MODE_SRC1_ALPHA;
-        case GL_ONE_MINUS_SRC1_COLOR_EXT:
+        case gl::BlendFactorType::OneMinusSrc1Color:
             return GX2_BLEND_MODE_INV_SRC1_COLOR;
-        case GL_ONE_MINUS_SRC1_ALPHA_EXT:
+        case gl::BlendFactorType::OneMinusSrc1Alpha:
             return GX2_BLEND_MODE_INV_SRC1_ALPHA;
         default:
             UNREACHABLE();
@@ -297,19 +297,19 @@ GX2BlendMode GetBlendMode(const GLenum blendFactor)
     }
 }
 
-GX2BlendCombineMode GetBlendCombineMode(const GLenum blendOp)
+GX2BlendCombineMode GetBlendCombineMode(gl::BlendEquationType blendEquation)
 {
-    switch (blendOp)
+    switch (blendEquation)
     {
-        case GL_FUNC_ADD:
+        case gl::BlendEquationType::Add:
             return GX2_BLEND_COMBINE_MODE_ADD;
-        case GL_FUNC_SUBTRACT:
+        case gl::BlendEquationType::Subtract:
             return GX2_BLEND_COMBINE_MODE_SUB;
-        case GL_FUNC_REVERSE_SUBTRACT:
+        case gl::BlendEquationType::ReverseSubtract:
             return GX2_BLEND_COMBINE_MODE_REV_SUB;
-        case GL_MIN:
+        case gl::BlendEquationType::Min:
             return GX2_BLEND_COMBINE_MODE_MIN;
-        case GL_MAX:
+        case gl::BlendEquationType::Max:
             return GX2_BLEND_COMBINE_MODE_MAX;
         default:
             UNREACHABLE();

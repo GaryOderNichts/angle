@@ -61,7 +61,8 @@ angle::Result BufferGX2::setData(const gl::Context *context,
                                  const void *data,
                                  size_t size,
                                  gl::BufferUsage usage,
-                                 BufferFeedback *feedback)
+                                 BufferFeedback *feedback,
+                                 gl::ZeroFillRequired zeroFillRequired)
 {
     ContextGX2 *contextGX2 = GetImplAs<ContextGX2>(context);
 
@@ -74,9 +75,18 @@ angle::Result BufferGX2::setData(const gl::Context *context,
                                                GetAlignmentForBufferBinding(mBufferBinding), size));
     }
 
-    if (data != nullptr)
+    const void *dataForImpl = data;
+    if (zeroFillRequired == gl::ZeroFillRequired::Yes)
     {
-        ANGLE_TRY(setDataImpl(contextGX2, data, 0, size, 0));
+        const angle::MemoryBuffer *scratchBuffer = nullptr;
+        ANGLE_CHECK_GL_ALLOC(GetImplAs<ContextGX2>(context),
+                             context->getZeroFilledBuffer(size, &scratchBuffer));
+        dataForImpl = scratchBuffer->data();
+    }
+
+    if (dataForImpl != nullptr)
+    {
+        ANGLE_TRY(setDataImpl(contextGX2, dataForImpl, 0, size, 0));
     }
 
     return angle::Result::Continue;

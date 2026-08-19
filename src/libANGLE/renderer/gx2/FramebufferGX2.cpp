@@ -178,14 +178,11 @@ angle::Result FramebufferGX2::readPixels(const gl::Context *context,
 
     const gl::InternalFormat &sizedFormatInfo = gl::GetInternalFormatInfo(format, type);
 
-    GLuint outputPitch;
-    ANGLE_CHECK_GL_MATH(contextGX2,
-                        sizedFormatInfo.computeRowPitch(type, area.width, pack.alignment,
-                                                        pack.rowLength, &outputPitch));
+    GLuint outputPitch     = 0;
+    GLuint outputSkipBytes = 0;
+    ANGLE_CHECK_GL_MATH(contextGX2, sizedFormatInfo.computeRowSkipBytes(
+                                        type, area.width, pack, &outputPitch, &outputSkipBytes));
 
-    GLuint outputSkipBytes;
-    ANGLE_CHECK_GL_MATH(contextGX2, sizedFormatInfo.computeSkipBytes(type, outputPitch, 0, pack,
-                                                                     false, &outputSkipBytes));
     outputSkipBytes += (clippedArea.x - area.x) * sizedFormatInfo.pixelBytes +
                        (clippedArea.y - area.y) * outputPitch;
 

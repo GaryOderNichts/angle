@@ -22,5 +22,5 @@
 ```
 
 ## Credits
-- The WebKit angle build system from [here](https://github.com/WebKit/WebKit/tree/00550091d9fb55fe62e3b7d0d029732a8f6ce04b/Source/ThirdParty/ANGLE)
+- The WebKit angle build system from [here](https://github.com/WebKit/WebKit/tree/main/Source/ThirdParty/ANGLE)
 - The [angle vcpkg port](https://github.com/microsoft/vcpkg/tree/master/ports/angle)

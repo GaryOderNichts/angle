@@ -98,7 +98,6 @@ ContextGX2::ContextGX2(const gl::State &state, gl::ErrorSet *errorSet, RendererG
     mExtensions.textureCompressionAstcOES       = true;
     mExtensions.compressedETC1RGB8TextureOES    = true;
     mExtensions.compressedETC1RGB8SubTextureEXT = true;
-    mExtensions.lossyEtcDecodeANGLE             = true;
     mExtensions.geometryShaderEXT               = true;
     mExtensions.geometryShaderOES               = true;
     mExtensions.multiDrawIndirectEXT            = true;
@@ -459,7 +458,8 @@ angle::Result ContextGX2::syncState(const gl::Context *context,
             }
             case gl::state::DIRTY_BIT_BLEND_ENABLED:
             {
-                mBlendEnabled = mState.getBlendState().blend;
+                mBlendEnabled = mState.getBlendStateExt().getEnabledMask().test(
+                    0);  // TODO properly handle mask
 
                 mInternalDirtyBits.set(DIRTY_BIT_GX2_COLOR_CONTROL);
                 break;
@@ -473,23 +473,24 @@ angle::Result ContextGX2::syncState(const gl::Context *context,
             }
             case gl::state::DIRTY_BIT_BLEND_FUNCS:
             {
-                // TODO ext blend state?
-                const gl::BlendState &blendState = mState.getBlendState();
+                const gl::BlendStateExt &blendState = mState.getBlendStateExt();
 
-                mColorSrcBlend = gl_gx2::GetBlendMode(blendState.sourceBlendRGB);
-                mColorDstBlend = gl_gx2::GetBlendMode(blendState.destBlendRGB);
-                mAlphaSrcBlend = gl_gx2::GetBlendMode(blendState.sourceBlendAlpha);
-                mAlphaDstBlend = gl_gx2::GetBlendMode(blendState.destBlendAlpha);
+                // TODO properly handle render targets
+                mColorSrcBlend = gl_gx2::GetBlendMode(blendState.getSrcColorIndexed(0));
+                mColorDstBlend = gl_gx2::GetBlendMode(blendState.getDstColorIndexed(0));
+                mAlphaSrcBlend = gl_gx2::GetBlendMode(blendState.getSrcAlphaIndexed(0));
+                mAlphaDstBlend = gl_gx2::GetBlendMode(blendState.getDstAlphaIndexed(0));
 
                 mInternalDirtyBits.set(DIRTY_BIT_GX2_BLEND);
                 break;
             }
             case gl::state::DIRTY_BIT_BLEND_EQUATIONS:
             {
-                const gl::BlendState &blendState = mState.getBlendState();
+                const gl::BlendStateExt &blendState = mState.getBlendStateExt();
 
-                mColorCombine = gl_gx2::GetBlendCombineMode(blendState.blendEquationRGB);
-                mAlphaCombine = gl_gx2::GetBlendCombineMode(blendState.blendEquationAlpha);
+                // TODO properly handle render targets
+                mColorCombine = gl_gx2::GetBlendCombineMode(blendState.getEquationColorIndexed(0));
+                mAlphaCombine = gl_gx2::GetBlendCombineMode(blendState.getEquationAlphaIndexed(0));
 
                 mInternalDirtyBits.set(DIRTY_BIT_GX2_BLEND);
                 break;
@@ -717,11 +718,6 @@ MemoryObjectImpl *ContextGX2::createMemoryObject()
 }
 
 SemaphoreImpl *ContextGX2::createSemaphore()
-{
-    return nullptr;
-}
-
-OverlayImpl *ContextGX2::createOverlay(const gl::OverlayState &state)
 {
     return nullptr;
 }

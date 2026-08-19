@@ -33,9 +33,9 @@ GX2FrontFace GetFrontFace(const GLenum frontFace);
 
 GX2CompareFunction GetCompareFunction(const GLenum compareFunc);
 
-GX2BlendMode GetBlendMode(const GLenum blendFactor);
+GX2BlendMode GetBlendMode(gl::BlendFactorType blendFactor);
 
-GX2BlendCombineMode GetBlendCombineMode(const GLenum blendOp);
+GX2BlendCombineMode GetBlendCombineMode(gl::BlendEquationType blendEquation);
 
 GX2TexAnisoRatio GetTexAnisoRatio(const float aniso);
 

@@ -68,7 +68,10 @@ if(angle_use_wayland)
 endif()
 
 if(angle_use_x11 OR angle_use_wayland)
-    list(APPEND _util_sources "util/linux/LinuxWindow.cpp")
+    list(APPEND _util_sources
+        "util/linux/LinuxWindow.cpp"
+        "util/linux/LinuxWindow.h"
+    )
 endif()
 
 if(is_fuchsia)

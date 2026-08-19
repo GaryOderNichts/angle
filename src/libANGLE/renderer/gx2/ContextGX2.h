@@ -233,9 +233,6 @@ class ContextGX2 : public ContextImpl, public MultisampleTextureInitializer
     // Semaphore creation.
     SemaphoreImpl *createSemaphore() override;
 
-    // Overlay creation.
-    OverlayImpl *createOverlay(const gl::OverlayState &state) override;
-
     angle::Result dispatchCompute(const gl::Context *context,
                                   GLuint numGroupsX,
                                   GLuint numGroupsY,

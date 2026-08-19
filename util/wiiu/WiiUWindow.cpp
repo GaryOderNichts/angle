@@ -132,7 +132,7 @@ void WiiUWindow::setVisible(bool isVisible) {}
 void WiiUWindow::signalTestEvent() {}
 
 // static
-OSWindow *OSWindow::New()
+OSWindow *OSWindow::New(void * /*nativeDisplay*/)
 {
     return new WiiUWindow();
 }
