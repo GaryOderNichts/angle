@@ -57,6 +57,7 @@ class BufferHelper final : angle::NonCopyable
 
     bool valid() const { return mBufferAllocation != nullptr; }
     bool initAllocation(RendererGX2 *context, size_t alignment, size_t size);
+    bool reallocate(RendererGX2 *renderer);
 
     bool waitUsed();
     void markUsed();

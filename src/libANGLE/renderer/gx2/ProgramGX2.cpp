@@ -114,7 +114,7 @@ angle::Result ProgramGX2::linkImpl(RendererGX2 *renderer,
     ANGLE_TRY(executableGX2->compileShaders(shaderSources, infoLog));
 
     // Initialize uniforms
-    ANGLE_TRY(executableGX2->initDefaultUniformBlocks(renderer));
+    ANGLE_TRY(executableGX2->initDefaultUniformBlocks());
     ANGLE_TRY(executableGX2->initDefaultUniformBlockLayout());
 
     return angle::Result::Continue;

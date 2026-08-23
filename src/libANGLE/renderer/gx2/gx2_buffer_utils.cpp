@@ -3,6 +3,7 @@
 #include <gx2/event.h>
 #include <gx2/mem.h>
 #include <gx2/state.h>
+#include <cstring>
 
 namespace rx
 {
@@ -80,6 +81,34 @@ bool BufferHelper::initAllocation(RendererGX2 *renderer, size_t alignment, size_
         // Uh oh
         return false;
     }
+
+    // TODO rework how buffer allocations are allocated? Using new everytime might be slow.
+    mBufferAllocation = new BufferAllocation(static_cast<uint8_t *>(buffer), alignment, size);
+    return true;
+}
+
+bool BufferHelper::reallocate(RendererGX2 *renderer)
+{
+    ASSERT(mBufferAllocation != nullptr);
+
+    uint8_t *data    = mBufferAllocation->getDataPtr();
+    size_t alignment = mBufferAllocation->getDataAlignment();
+    size_t size      = mBufferAllocation->getDataSize();
+
+    // Allocate a new buffer
+    void *buffer = renderer->allocateMemory(alignment, size);
+    if (!buffer)
+    {
+        // Uh oh
+        return false;
+    }
+
+    // Copy old data
+    memcpy(buffer, data, size);
+
+    // Free old buffer allocation
+    renderer->freeMemory(data);
+    delete mBufferAllocation;
 
     // TODO rework how buffer allocations are allocated? Using new everytime might be slow.
     mBufferAllocation = new BufferAllocation(static_cast<uint8_t *>(buffer), alignment, size);

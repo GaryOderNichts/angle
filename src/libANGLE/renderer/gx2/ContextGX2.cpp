@@ -650,7 +650,7 @@ ProgramImpl *ContextGX2::createProgram(const gl::ProgramState &data)
 
 ProgramExecutableImpl *ContextGX2::createProgramExecutable(const gl::ProgramExecutable *executable)
 {
-    return new ProgramExecutableGX2(executable);
+    return new ProgramExecutableGX2(executable, mRenderer);
 }
 
 FramebufferImpl *ContextGX2::createFramebuffer(const gl::FramebufferState &data)

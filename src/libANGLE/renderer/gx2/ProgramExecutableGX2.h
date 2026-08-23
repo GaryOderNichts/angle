@@ -25,7 +25,7 @@ struct DefaultUniformBlock : angle::NonCopyable
 class ProgramExecutableGX2 : public ProgramExecutableImpl
 {
   public:
-    ProgramExecutableGX2(const gl::ProgramExecutable *executable);
+    ProgramExecutableGX2(const gl::ProgramExecutable *executable, RendererGX2 *renderer);
     ~ProgramExecutableGX2() override;
 
     void destroy(const gl::Context *context) override;
@@ -96,7 +96,7 @@ class ProgramExecutableGX2 : public ProgramExecutableImpl
 
     size_t getDefaultUniformBlockSize(gl::ShaderType shaderType) const;
 
-    angle::Result initDefaultUniformBlocks(RendererGX2 *renderer);
+    angle::Result initDefaultUniformBlocks();
 
     angle::Result initDefaultUniformBlockLayout();
 
@@ -111,6 +111,8 @@ class ProgramExecutableGX2 : public ProgramExecutableImpl
                             GLsizei count,
                             GLboolean transpose,
                             const GLfloat *value);
+
+    RendererGX2 *const mRenderer;
 
     GX2VertexShader *mVertexShader;
     GX2PixelShader *mPixelShader;

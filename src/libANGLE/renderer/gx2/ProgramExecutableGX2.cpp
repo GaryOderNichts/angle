@@ -26,8 +26,10 @@ constexpr uint32_t kDefaultUniformBlockLocation = 15;
 namespace rx
 {
 
-ProgramExecutableGX2::ProgramExecutableGX2(const gl::ProgramExecutable *executable)
+ProgramExecutableGX2::ProgramExecutableGX2(const gl::ProgramExecutable *executable,
+                                           RendererGX2 *renderer)
     : ProgramExecutableImpl(executable),
+      mRenderer(renderer),
       mVertexShader(),
       mPixelShader(),
       mUniformVars(),
@@ -355,7 +357,7 @@ size_t ProgramExecutableGX2::getDefaultUniformBlockSize(gl::ShaderType shaderTyp
         maxElement->offset + gx2::GetShaderVarTypeSize(maxElement->type) * maxElement->count, 16u);
 }
 
-angle::Result ProgramExecutableGX2::initDefaultUniformBlocks(RendererGX2 *renderer)
+angle::Result ProgramExecutableGX2::initDefaultUniformBlocks()
 {
     for (const gl::ShaderType shaderType : mExecutable->getLinkedShaderStages())
     {
@@ -368,7 +370,7 @@ angle::Result ProgramExecutableGX2::initDefaultUniformBlocks(RendererGX2 *render
 
         gx2::BufferHelper &buffer = mDefaultUniformBlocks[shaderType].buffer;
 
-        if (!buffer.initAllocation(renderer, GX2_UNIFORM_BLOCK_ALIGNMENT, blockSize))
+        if (!buffer.initAllocation(mRenderer, GX2_UNIFORM_BLOCK_ALIGNMENT, blockSize))
         {
             return angle::Result::Stop;
         }
@@ -463,10 +465,11 @@ void ProgramExecutableGX2::setUniformImpl(GLint location,
             continue;
         }
 
-        // TODO this will stall the GPU, can we avoid this with something more performant?
+        // Check if buffer is in use by the GPU and should be orphaned (uniform blocks should be
+        // small enough to do this)
         if (uniformBlock.buffer.isInUse())
         {
-            uniformBlock.buffer.waitUsed();
+            uniformBlock.buffer.reallocate(mRenderer);
         }
 
         const GX2UniformVar &uniformVar = it->second;
@@ -637,10 +640,11 @@ void ProgramExecutableGX2::setUniformMatrixfv(GLint location,
             continue;
         }
 
-        // TODO this will stall the GPU, can we avoid this with something more performant?
+        // Check if buffer is in use by the GPU and should be orphaned (uniform blocks should be
+        // small enough to do this)
         if (uniformBlock.buffer.isInUse())
         {
-            uniformBlock.buffer.waitUsed();
+            uniformBlock.buffer.reallocate(mRenderer);
         }
 
         const GX2UniformVar &uniformVar = it->second;
