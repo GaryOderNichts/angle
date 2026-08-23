@@ -9,8 +9,8 @@ namespace rx
 namespace gx2
 {
 
-BufferAllocation::BufferAllocation(uint8_t *data, size_t size)
-    : mDataPtr(data), mDataSize(size), mTimeStamp(0)
+BufferAllocation::BufferAllocation(uint8_t *data, size_t alignment, size_t size)
+    : mDataPtr(data), mDataAlignment(alignment), mDataSize(size), mTimeStamp(0)
 {}
 
 BufferAllocation::~BufferAllocation() {}
@@ -82,7 +82,7 @@ bool BufferHelper::initAllocation(RendererGX2 *renderer, size_t alignment, size_
     }
 
     // TODO rework how buffer allocations are allocated? Using new everytime might be slow.
-    mBufferAllocation = new BufferAllocation(static_cast<uint8_t *>(buffer), size);
+    mBufferAllocation = new BufferAllocation(static_cast<uint8_t *>(buffer), alignment, size);
     return true;
 }
 

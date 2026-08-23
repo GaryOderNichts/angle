@@ -257,10 +257,10 @@ angle::Result ProgramExecutableGX2::compileShaders(const gl::ShaderMap<std::stri
                                                          kMaxInfoLogSize, kCompilerFlags);
                 if (!mVertexShader)
                 {
-                    infoLog << "Internal error compiling vertex shader with CafeGLSL.\n";
-                    infoLog << "-------\n";
+                    infoLog << "Internal error compiling vertex shader with CafeGLSL.";
+                    infoLog << "-------";
                     infoLog << &infoLogBuf[0];
-                    infoLog << "-------\n";
+                    infoLog << "-------";
                     return angle::Result::Stop;
                 }
 
@@ -276,10 +276,10 @@ angle::Result ProgramExecutableGX2::compileShaders(const gl::ShaderMap<std::stri
                                                        kMaxInfoLogSize, kCompilerFlags);
                 if (!mPixelShader)
                 {
-                    infoLog << "Internal error compiling pixel shader with CafeGLSL.\n";
-                    infoLog << "-------\n";
+                    infoLog << "Internal error compiling pixel shader with CafeGLSL.";
+                    infoLog << "-------";
                     infoLog << &infoLogBuf[0];
-                    infoLog << "-------\n";
+                    infoLog << "-------";
                     return angle::Result::Stop;
                 }
 
@@ -290,7 +290,7 @@ angle::Result ProgramExecutableGX2::compileShaders(const gl::ShaderMap<std::stri
             }
             else
             {
-                infoLog << "Cannot compile this shader type yet\n";
+                infoLog << "Cannot compile this shader type yet";
                 return angle::Result::Stop;
             }
 
@@ -471,9 +471,12 @@ void ProgramExecutableGX2::setUniformImpl(GLint location,
 
         const GX2UniformVar &uniformVar = it->second;
 
+        ASSERT(locationInfo.arrayIndex < uniformVar.count);
+
         // TODO improve this
         uint8_t *dst = uniformBlock.buffer.getDataPtr() + uniformVar.offset;
-        int maxIndex = locationInfo.arrayIndex + count;
+        int maxIndex =
+            locationInfo.arrayIndex + std::min(count, static_cast<GLsizei>(uniformVar.count));
         for (int writeIndex = locationInfo.arrayIndex, readIndex = 0; writeIndex < maxIndex;
              writeIndex++, readIndex++)
         {

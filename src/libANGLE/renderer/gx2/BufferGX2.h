@@ -79,7 +79,7 @@ class BufferGX2 : public BufferImpl
 
     angle::Result ensureBufferUnused(ContextGX2 *context);
 
-    bool needsBufferReallocation(ContextGX2 *context, size_t updateSize);
+    bool needsBufferReallocation(ContextGX2 *context, size_t updateSize, size_t updateAlignment);
 
     gx2::BufferHelper mBuffer;
 

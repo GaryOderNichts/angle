@@ -103,6 +103,7 @@ angle::Result TextureGX2::copyImage(const gl::Context *context,
                                     GLenum internalFormat,
                                     gl::Framebuffer *source)
 {
+    UNIMPLEMENTED();
     return angle::Result::Continue;
 }
 
@@ -201,6 +202,14 @@ angle::Result TextureGX2::setStorage(const gl::Context *context,
     if (mTexture.valid())
     {
         mTexture.release();
+    }
+
+    // Destroy old rendertarget
+    if (mRenderTarget)
+    {
+        mRenderTarget->destroy();
+        delete mRenderTarget;
+        mRenderTarget = nullptr;
     }
 
     // Initialize texture
@@ -367,6 +376,14 @@ angle::Result TextureGX2::redefineImage(ContextGX2 *contextGX2,
         {
             // release old texture
             mTexture.release();
+
+            // Destroy old rendertarget
+            if (mRenderTarget)
+            {
+                mRenderTarget->destroy();
+                delete mRenderTarget;
+                mRenderTarget = nullptr;
+            }
         }
     }
 
@@ -456,7 +473,8 @@ angle::Result TextureGX2::setSubImageImpl(ContextGX2 *contextGX2,
     GLuint destDepthPitch = destRowPitch * mTexture.getHeight();
 
     // Offset to destination offset
-    destPtr += (destDepthPitch * area.z) + (destRowPitch * area.y) + area.x;
+    destPtr +=
+        (destDepthPitch * area.z) + (destRowPitch * area.y) + (area.x * actualFormat.pixelBytes);
 
     // Load the data into the texture (also handles convert)
     LoadImageFunctionInfo loadFunctionInfo = angle::GetLoadFunctionsMap(

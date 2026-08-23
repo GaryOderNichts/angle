@@ -68,11 +68,11 @@ angle::Result BufferGX2::setData(const gl::Context *context,
 
     mBufferBinding = target;
 
-    if (needsBufferReallocation(contextGX2, size))
+    size_t alignment = GetAlignmentForBufferBinding(mBufferBinding);
+    if (needsBufferReallocation(contextGX2, size, alignment))
     {
-        ANGLE_CHECK_GL_ALLOC(
-            contextGX2, mBuffer.initAllocation(contextGX2->getRenderer(),
-                                               GetAlignmentForBufferBinding(mBufferBinding), size));
+        ANGLE_CHECK_GL_ALLOC(contextGX2,
+                             mBuffer.initAllocation(contextGX2->getRenderer(), alignment, size));
     }
 
     const void *dataForImpl = data;
@@ -242,7 +242,9 @@ angle::Result BufferGX2::ensureBufferUnused(ContextGX2 *context)
     return angle::Result::Continue;
 }
 
-bool BufferGX2::needsBufferReallocation(ContextGX2 *context, size_t updateSize)
+bool BufferGX2::needsBufferReallocation(ContextGX2 *context,
+                                        size_t updateSize,
+                                        size_t updateAlignment)
 {
     // If the buffer isn't valid we always need to allocate
     if (!mBuffer.valid())
@@ -258,6 +260,11 @@ bool BufferGX2::needsBufferReallocation(ContextGX2 *context, size_t updateSize)
 
     // TODO add some percentage system to avoid reallocating the buffer for small changes
     if (mBuffer.getDataSize() != updateSize)
+    {
+        return true;
+    }
+
+    if (mBuffer.getDataAlignment() != updateAlignment)
     {
         return true;
     }

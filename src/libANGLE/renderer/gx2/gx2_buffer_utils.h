@@ -27,14 +27,16 @@ class BufferAllocation final : angle::NonCopyable
     uint8_t *getDataPtr() { return mDataPtr; }
 
     size_t getDataSize() const { return mDataSize; }
+    size_t getDataAlignment() const { return mDataAlignment; }
 
   private:
     friend class BufferHelper;
-    BufferAllocation(uint8_t *buffer, size_t size);
+    BufferAllocation(uint8_t *buffer, size_t alignment, size_t size);
     ~BufferAllocation();
 
     // Allocated buffer and size
     uint8_t *mDataPtr;
+    size_t mDataAlignment;
     size_t mDataSize;
 
     // LastSubmittedTimeStamp + 1 at the time the buffer was marked as used.
@@ -89,6 +91,12 @@ class BufferHelper final : angle::NonCopyable
     {
         ASSERT(valid());
         return mBufferAllocation->getDataSize();
+    }
+
+    size_t getDataAlignment() const
+    {
+        ASSERT(valid());
+        return mBufferAllocation->getDataAlignment();
     }
 
     const BufferAllocation *getBufferAllocation() const

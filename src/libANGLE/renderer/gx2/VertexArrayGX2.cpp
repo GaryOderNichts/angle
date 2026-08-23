@@ -131,12 +131,12 @@ angle::Result VertexArrayGX2::syncStateForDraw(const gl::Context *context,
             // memory
 
             const size_t bufferSize = (startVertex + vertexCount) * binding.getStride();
-            uint8_t *buffer =
+            uint8_t *attribBuffer =
                 static_cast<uint8_t *>(contextGX2->getRenderer()->allocateFromRingBuffer(
                     GX2_VERTEX_BUFFER_ALIGNMENT, bufferSize));
 
             const uint8_t *src = static_cast<const uint8_t *>(attrib.pointer);
-            uint8_t *dst       = buffer;
+            uint8_t *dst       = attribBuffer;
 
             // Need to offset both src and dst or indices will be off
             src += startVertex * binding.getStride();
@@ -144,8 +144,8 @@ angle::Result VertexArrayGX2::syncStateForDraw(const gl::Context *context,
 
             memcpy(dst, src, vertexCount * binding.getStride());
 
-            GX2Invalidate(GX2_INVALIDATE_MODE_CPU_ATTRIBUTE_BUFFER, buffer, bufferSize);
-            GX2SetAttribBuffer(attrib.bindingIndex, bufferSize, binding.getStride(), buffer);
+            GX2Invalidate(GX2_INVALIDATE_MODE_CPU_ATTRIBUTE_BUFFER, attribBuffer, bufferSize);
+            GX2SetAttribBuffer(attrib.bindingIndex, bufferSize, binding.getStride(), attribBuffer);
             continue;
         }
 

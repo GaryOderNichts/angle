@@ -136,7 +136,7 @@ void ContextGX2::onDestroy(const gl::Context *context)
 {
     if (mDefaultAttribsBuffer)
     {
-        free(mDefaultAttribsBuffer);
+        mRenderer->freeMemory(mDefaultAttribsBuffer);
         mDefaultAttribsBuffer = nullptr;
     }
 
@@ -430,11 +430,8 @@ angle::Result ContextGX2::syncState(const gl::Context *context,
                 break;
             }
             case gl::state::DIRTY_BIT_READ_FRAMEBUFFER_BINDING:
-            {
-                // TODO
-                UNIMPLEMENTED();
+                // Read framebuffer is simply read during blit operations etc.
                 break;
-            }
             case gl::state::DIRTY_BIT_SCISSOR_TEST_ENABLED:
             case gl::state::DIRTY_BIT_SCISSOR:
             {
@@ -1019,6 +1016,7 @@ void ContextGX2::updateTextureBindings(const gl::Context *context)
 
             TextureGX2 *textureGX2 = GetImplAs<TextureGX2>(texture);
 
+            // TODO what if the textureUnits don't happen to line up
             GX2SetPixelTexture(textureGX2->getTexture(), textureUnit);
             GX2SetPixelSampler(textureGX2->getSampler(), textureUnit);
         }
