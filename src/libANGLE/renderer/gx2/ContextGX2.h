@@ -308,6 +308,7 @@ class ContextGX2 : public ContextImpl, public MultisampleTextureInitializer
         DIRTY_BIT_GX2_POLYGON_CONTROL,
         DIRTY_BIT_GX2_POLYGON_OFFSET,
         DIRTY_BIT_GX2_DEPTH_STENCIL,
+        DIRTY_BIT_GX2_STENCIL_MASK,
         DIRTY_BIT_GX2_COLOR_CONTROL,
         DIRTY_BIT_GX2_BLEND,
         DIRTY_BIT_GX2_BLEND_COLOR,
@@ -320,6 +321,7 @@ class ContextGX2 : public ContextImpl, public MultisampleTextureInitializer
 
     DirtyBitsGX2 mInternalDirtyBits;
 
+    // TODO split all of this into its own GX2 state struct
     gl::Rectangle mViewportRect;
     float mNearZ;
     float mFarZ;
@@ -337,6 +339,22 @@ class ContextGX2 : public ContextImpl, public MultisampleTextureInitializer
     BOOL mDepthTest;
     BOOL mDepthWrite;
     GX2CompareFunction mDepthCompare;
+
+    BOOL mStencilTest;
+    GX2CompareFunction mStencilFrontFunc;
+    GX2StencilFunction mStencilFrontZPass;
+    GX2StencilFunction mStencilFrontZFail;
+    GX2StencilFunction mStencilFrontFail;
+    GX2CompareFunction mStencilBackFunc;
+    GX2StencilFunction mStencilBackZPass;
+    GX2StencilFunction mStencilBackZFail;
+    GX2StencilFunction mStencilBackFail;
+    uint8_t mStencilFrontMask;
+    uint8_t mStencilFrontWriteMask;
+    uint8_t mStencilFrontRef;
+    uint8_t mStencilBackMask;
+    uint8_t mStencilBackWriteMask;
+    uint8_t mStencilBackRef;
 
     bool mBlendEnabled;
     GX2BlendMode mColorSrcBlend;

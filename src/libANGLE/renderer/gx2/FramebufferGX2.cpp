@@ -53,6 +53,8 @@ angle::Result FramebufferGX2::clear(const gl::Context *context, GLbitfield mask)
     bool clearDepth   = IsMaskFlagSet(mask, static_cast<GLbitfield>(GL_DEPTH_BUFFER_BIT));
     bool clearStencil = IsMaskFlagSet(mask, static_cast<GLbitfield>(GL_STENCIL_BUFFER_BIT));
 
+    const gl::State &state = context->getState();
+
     if (clearColor)
     {
         const gl::FramebufferAttachment *colorAttachment = mState.getFirstColorAttachment();
@@ -84,7 +86,7 @@ angle::Result FramebufferGX2::clear(const gl::Context *context, GLbitfield mask)
             GetAs<DepthStencilRenderTargetGX2>(renderTarget);
         GX2DepthBuffer *depthBuffer = depthStencilTarget->getDepthBuffer();
 
-        int clearFlags = 0;
+        GX2ClearFlags clearFlags{};
         if (clearDepth)
         {
             clearFlags |= GX2_CLEAR_FLAGS_DEPTH;
@@ -94,9 +96,8 @@ angle::Result FramebufferGX2::clear(const gl::Context *context, GLbitfield mask)
             clearFlags |= GX2_CLEAR_FLAGS_STENCIL;
         }
 
-        // TODO read depthClear and stencilClear from context
-        GX2ClearDepthStencilEx(depthBuffer, depthBuffer->depthClear, depthBuffer->stencilClear,
-                               static_cast<GX2ClearFlags>(clearFlags));
+        GX2ClearDepthStencilEx(depthBuffer, state.getDepthClearValue(),
+                               state.getStencilClearValue(), clearFlags);
     }
 
     // Need to restore our state after GPU clear

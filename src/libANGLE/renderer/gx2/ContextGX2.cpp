@@ -53,6 +53,21 @@ ContextGX2::ContextGX2(const gl::State &state, gl::ErrorSet *errorSet, RendererG
       mDepthTest(),
       mDepthWrite(),
       mDepthCompare(),
+      mStencilTest(),
+      mStencilFrontFunc(),
+      mStencilFrontZPass(),
+      mStencilFrontZFail(),
+      mStencilFrontFail(),
+      mStencilBackFunc(),
+      mStencilBackZPass(),
+      mStencilBackZFail(),
+      mStencilBackFail(),
+      mStencilFrontMask(),
+      mStencilFrontWriteMask(),
+      mStencilFrontRef(),
+      mStencilBackMask(),
+      mStencilBackWriteMask(),
+      mStencilBackRef(),
       mBlendEnabled(),
       mColorSrcBlend(),
       mColorDstBlend(),
@@ -513,6 +528,77 @@ angle::Result ContextGX2::syncState(const gl::Context *context,
                 mInternalDirtyBits.set(DIRTY_BIT_GX2_DEPTH_STENCIL);
                 break;
             }
+            case gl::state::DIRTY_BIT_STENCIL_TEST_ENABLED:
+            {
+                mStencilTest = mState.getDepthStencilState().stencilTest;
+
+                mInternalDirtyBits.set(DIRTY_BIT_GX2_DEPTH_STENCIL);
+                break;
+            }
+            case gl::state::DIRTY_BIT_STENCIL_FUNCS_FRONT:
+            {
+                const gl::DepthStencilState &depthStencilState = mState.getDepthStencilState();
+
+                mStencilFrontFunc = gl_gx2::GetCompareFunction(depthStencilState.stencilFunc);
+                mStencilFrontRef  = mState.getStencilRef();
+                mStencilFrontMask = depthStencilState.stencilMask;
+
+                mInternalDirtyBits.set(DIRTY_BIT_GX2_DEPTH_STENCIL);
+                mInternalDirtyBits.set(DIRTY_BIT_GX2_STENCIL_MASK);
+                break;
+            }
+            case gl::state::DIRTY_BIT_STENCIL_FUNCS_BACK:
+            {
+                const gl::DepthStencilState &depthStencilState = mState.getDepthStencilState();
+
+                mStencilBackFunc = gl_gx2::GetCompareFunction(depthStencilState.stencilBackFunc);
+                mStencilBackRef  = mState.getStencilBackRef();
+                mStencilBackMask = depthStencilState.stencilBackMask;
+
+                mInternalDirtyBits.set(DIRTY_BIT_GX2_DEPTH_STENCIL);
+                mInternalDirtyBits.set(DIRTY_BIT_GX2_STENCIL_MASK);
+                break;
+            }
+            case gl::state::DIRTY_BIT_STENCIL_OPS_FRONT:
+            {
+                const gl::DepthStencilState &depthStencilState = mState.getDepthStencilState();
+
+                mStencilFrontFail = gl_gx2::GetStencilFunction(depthStencilState.stencilFail);
+                mStencilFrontZPass =
+                    gl_gx2::GetStencilFunction(depthStencilState.stencilPassDepthPass);
+                mStencilFrontZFail =
+                    gl_gx2::GetStencilFunction(depthStencilState.stencilPassDepthFail);
+
+                mInternalDirtyBits.set(DIRTY_BIT_GX2_DEPTH_STENCIL);
+                break;
+            }
+            case gl::state::DIRTY_BIT_STENCIL_OPS_BACK:
+            {
+                const gl::DepthStencilState &depthStencilState = mState.getDepthStencilState();
+
+                mStencilBackFail = gl_gx2::GetStencilFunction(depthStencilState.stencilBackFail);
+                mStencilBackZPass =
+                    gl_gx2::GetStencilFunction(depthStencilState.stencilBackPassDepthPass);
+                mStencilBackZFail =
+                    gl_gx2::GetStencilFunction(depthStencilState.stencilBackPassDepthFail);
+
+                mInternalDirtyBits.set(DIRTY_BIT_GX2_DEPTH_STENCIL);
+                break;
+            }
+            case gl::state::DIRTY_BIT_STENCIL_WRITEMASK_FRONT:
+            {
+                mStencilFrontWriteMask = mState.getDepthStencilState().stencilWritemask;
+
+                mInternalDirtyBits.set(DIRTY_BIT_GX2_STENCIL_MASK);
+                break;
+            }
+            case gl::state::DIRTY_BIT_STENCIL_WRITEMASK_BACK:
+            {
+                mStencilBackWriteMask = mState.getDepthStencilState().stencilBackWritemask;
+
+                mInternalDirtyBits.set(DIRTY_BIT_GX2_STENCIL_MASK);
+                break;
+            }
             case gl::state::DIRTY_BIT_CULL_FACE_ENABLED:
             case gl::state::DIRTY_BIT_CULL_FACE:
             {
@@ -813,8 +899,16 @@ angle::Result ContextGX2::updateState(const gl::Context *context)
             }
             case DIRTY_BIT_GX2_DEPTH_STENCIL:
             {
-                // GX2SetDepthStencilControl();
-                GX2SetDepthOnlyControl(mDepthTest, mDepthWrite, mDepthCompare);
+                GX2SetDepthStencilControl(mDepthTest, mDepthWrite, mDepthCompare, mStencilTest,
+                                          TRUE, mStencilFrontFunc, mStencilFrontZPass,
+                                          mStencilFrontZFail, mStencilFrontFail, mStencilBackFunc,
+                                          mStencilBackZPass, mStencilBackZFail, mStencilBackFail);
+                break;
+            }
+            case DIRTY_BIT_GX2_STENCIL_MASK:
+            {
+                GX2SetStencilMask(mStencilFrontMask, mStencilFrontWriteMask, mStencilFrontRef,
+                                  mStencilBackMask, mStencilBackWriteMask, mStencilBackRef);
                 break;
             }
             case DIRTY_BIT_GX2_COLOR_CONTROL:

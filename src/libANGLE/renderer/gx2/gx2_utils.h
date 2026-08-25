@@ -33,6 +33,8 @@ GX2FrontFace GetFrontFace(const GLenum frontFace);
 
 GX2CompareFunction GetCompareFunction(const GLenum compareFunc);
 
+GX2StencilFunction GetStencilFunction(const GLenum compareOp);
+
 GX2BlendMode GetBlendMode(gl::BlendFactorType blendFactor);
 
 GX2BlendCombineMode GetBlendCombineMode(gl::BlendEquationType blendEquation);

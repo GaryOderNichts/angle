@@ -248,6 +248,32 @@ GX2CompareFunction GetCompareFunction(const GLenum compareFunc)
     }
 }
 
+GX2StencilFunction GetStencilFunction(const GLenum compareOp)
+{
+    switch (compareOp)
+    {
+        case GL_KEEP:
+            return GX2_STENCIL_FUNCTION_KEEP;
+        case GL_ZERO:
+            return GX2_STENCIL_FUNCTION_ZERO;
+        case GL_REPLACE:
+            return GX2_STENCIL_FUNCTION_REPLACE;
+        case GL_INCR:
+            return GX2_STENCIL_FUNCTION_INCR_CLAMP;
+        case GL_DECR:
+            return GX2_STENCIL_FUNCTION_DECR_CLAMP;
+        case GL_INCR_WRAP:
+            return GX2_STENCIL_FUNCTION_INCR_WRAP;
+        case GL_DECR_WRAP:
+            return GX2_STENCIL_FUNCTION_DECR_WRAP;
+        case GL_INVERT:
+            return GX2_STENCIL_FUNCTION_INV;
+        default:
+            UNREACHABLE();
+            return GX2_STENCIL_FUNCTION_KEEP;
+    }
+}
+
 GX2BlendMode GetBlendMode(gl::BlendFactorType blendFactor)
 {
     switch (blendFactor)

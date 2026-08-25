@@ -74,7 +74,7 @@ set(angle_end2end_tests_sources
     # "src/tests/gl_tests/DebugMarkerTest.cpp"
     # "src/tests/gl_tests/DebugTest.cpp"
     # "src/tests/gl_tests/DepthStencilFormatsTest.cpp"
-    # "src/tests/gl_tests/DepthStencilTest.cpp"
+    "src/tests/gl_tests/DepthStencilTest.cpp"
     # "src/tests/gl_tests/DepthWriteTest.cpp"
     # "src/tests/gl_tests/DifferentStencilMasksTest.cpp"
     # "src/tests/gl_tests/DiscardFramebufferEXTTest.cpp"
