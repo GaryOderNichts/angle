@@ -10,30 +10,70 @@ namespace rx
 namespace gx2
 {
 
-BufferAllocation::BufferAllocation(uint8_t *data, size_t alignment, size_t size)
-    : mDataPtr(data), mDataAlignment(alignment), mDataSize(size), mTimeStamp(0)
-{}
+BufferHelper::BufferHelper() : mDataPtr(nullptr), mDataAlignment(0), mDataSize(0), mTimeStamp(0) {}
 
-BufferAllocation::~BufferAllocation() {}
-
-void BufferAllocation::markUsed()
+BufferHelper::~BufferHelper()
 {
-    // Since GX2GetLastSubmittedTimeStamp might not flush and won't return the timestamp of the
-    // batch at which the buffer has been used, we do +1 to act as "whichever timestamp will be done
-    // next". Only adding +1 is okay, since between the point markUsed is called and the actual draw
-    // submit call happenning, no other draw should be submitted.
-    mTimeStamp = GX2GetLastSubmittedTimeStamp() + 1;
+    ASSERT(mDataPtr == nullptr);
 }
 
-bool BufferAllocation::isInUse() const
+void BufferHelper::destroy(RendererGX2 *renderer)
 {
-    // If the last retired time stamp of the batch is less than the buffer timestamp,
-    // the GPU might have not processed this buffer yet
-    return GX2GetRetiredTimeStamp() < mTimeStamp;
+    freeAllocation(renderer);
 }
 
-bool BufferAllocation::waitUsed()
+bool BufferHelper::valid() const
 {
+    return mDataPtr != nullptr;
+}
+
+bool BufferHelper::initAllocation(RendererGX2 *renderer, size_t alignment, size_t size)
+{
+    if (mDataPtr != nullptr)
+    {
+        freeAllocation(renderer);
+    }
+
+    void *buffer = renderer->allocateMemory(alignment, size);
+    if (!buffer)
+    {
+        // Uh oh
+        return false;
+    }
+
+    mDataPtr       = static_cast<uint8_t *>(buffer);
+    mDataAlignment = alignment;
+    mDataSize      = size;
+    return true;
+}
+
+bool BufferHelper::reallocate(RendererGX2 *renderer)
+{
+    ASSERT(valid());
+
+    // Allocate a new buffer
+    void *buffer = renderer->allocateMemory(mDataAlignment, mDataSize);
+    if (!buffer)
+    {
+        // Uh oh
+        return false;
+    }
+
+    // Copy old data
+    memcpy(buffer, mDataPtr, mDataSize);
+
+    // Free old buffer allocation
+    renderer->freeMemory(mDataPtr);
+
+    mDataPtr   = static_cast<uint8_t *>(buffer);
+    mTimeStamp = 0;  // Reset timestamp now that we have a fresh buffer
+    return true;
+}
+
+bool BufferHelper::waitUsed()
+{
+    ASSERT(valid());
+
     // If the buffer has never been used, don't do anything
     if (mTimeStamp == 0)
     {
@@ -42,95 +82,52 @@ bool BufferAllocation::waitUsed()
 
     // Flushing here is important otherwise we might wait on a buffer that
     // hasn't even been submitted to the GPU yet
-    GX2Flush();
+    if (GX2GetLastSubmittedTimeStamp() < mTimeStamp)
+    {
+        GX2Flush();
+    }
 
     // Wait on the buffers timestamp
     return GX2WaitTimeStamp(mTimeStamp);
 }
 
-BufferHelper::BufferHelper() : mBufferAllocation(nullptr) {}
-
-BufferHelper::~BufferHelper() {}
-
-void BufferHelper::destroy(RendererGX2 *renderer)
-{
-    if (mBufferAllocation != nullptr)
-    {
-        // Add to the renderer free queue, we don't need to wait for unused
-        renderer->freeMemory(mBufferAllocation->getDataPtr());
-
-        delete mBufferAllocation;
-        mBufferAllocation = nullptr;
-    }
-}
-
-bool BufferHelper::initAllocation(RendererGX2 *renderer, size_t alignment, size_t size)
-{
-    if (mBufferAllocation != nullptr)
-    {
-        // Add previous allocation to the renderer free queue, we don't need to wait for unused
-        renderer->freeMemory(mBufferAllocation->getDataPtr());
-
-        delete mBufferAllocation;
-        mBufferAllocation = nullptr;
-    }
-
-    void *buffer = renderer->allocateMemory(alignment, size);
-    if (!buffer)
-    {
-        // Uh oh
-        return false;
-    }
-
-    // TODO rework how buffer allocations are allocated? Using new everytime might be slow.
-    mBufferAllocation = new BufferAllocation(static_cast<uint8_t *>(buffer), alignment, size);
-    return true;
-}
-
-bool BufferHelper::reallocate(RendererGX2 *renderer)
-{
-    ASSERT(mBufferAllocation != nullptr);
-
-    uint8_t *data    = mBufferAllocation->getDataPtr();
-    size_t alignment = mBufferAllocation->getDataAlignment();
-    size_t size      = mBufferAllocation->getDataSize();
-
-    // Allocate a new buffer
-    void *buffer = renderer->allocateMemory(alignment, size);
-    if (!buffer)
-    {
-        // Uh oh
-        return false;
-    }
-
-    // Copy old data
-    memcpy(buffer, data, size);
-
-    // Free old buffer allocation
-    renderer->freeMemory(data);
-    delete mBufferAllocation;
-
-    // TODO rework how buffer allocations are allocated? Using new everytime might be slow.
-    mBufferAllocation = new BufferAllocation(static_cast<uint8_t *>(buffer), alignment, size);
-    return true;
-}
-
-bool BufferHelper::waitUsed()
-{
-    ASSERT(mBufferAllocation != nullptr);
-    return mBufferAllocation->waitUsed();
-}
-
 void BufferHelper::markUsed()
 {
-    ASSERT(mBufferAllocation != nullptr);
-    return mBufferAllocation->markUsed();
+    ASSERT(valid());
+
+    // Since GX2GetLastSubmittedTimeStamp might not flush and won't return the timestamp of the
+    // batch at which the buffer has been used, we do +1 to act as "whichever timestamp will be done
+    // next". Only adding +1 is okay, since between the point markUsed is called and the actual draw
+    // submit call happenning, no other draw should be submitted.
+    mTimeStamp = GX2GetLastSubmittedTimeStamp() + 1;
+}
+
+bool BufferHelper::isInUse() const
+{
+    // If the last retired time stamp of the batch is less than the buffer timestamp,
+    // the GPU might have not processed this buffer yet
+    return GX2GetRetiredTimeStamp() < mTimeStamp;
 }
 
 void BufferHelper::invalidateWithOffset(GX2InvalidateMode mode, size_t size, size_t offset)
 {
-    ASSERT(mBufferAllocation != nullptr);
-    GX2Invalidate(mode, mBufferAllocation->getDataPtr() + offset, size);
+    ASSERT(valid());
+
+    GX2Invalidate(mode, mDataPtr + offset, size);
+}
+
+void BufferHelper::freeAllocation(RendererGX2 *renderer)
+{
+    if (mDataPtr != nullptr)
+    {
+        // Add to the renderer free queue, we don't need to wait for unused
+        renderer->freeMemory(mDataPtr);
+
+        mDataPtr       = nullptr;
+        mDataAlignment = 0;
+        mDataSize      = 0;
+        mTimeStamp     = 0;
+    }
 }
 
 }  // namespace gx2
